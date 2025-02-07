@@ -1,0 +1,58 @@
+import { Category, CovenantDetails, Status } from "../types/cnft";
+
+export const cNFTs: CovenantDetails[] = [
+  {
+    nftId: BigInt(1),
+    nftType: Category.InfluenceA,
+    agentWallet: "0x123",
+    agentId: "1",
+    agentName: "Agent 1",
+    status: Status.Minted,
+    goal: "Sample Goal 1",
+    asset: "ETH",
+    owner: "0x456",
+    price: BigInt(100),
+    abilityScore: BigInt(80),
+    subgoalsId: [],
+    parentGoalId: BigInt(0),
+    settlementLink: "https://example.com/settlement/1",
+    openseaLink: "https://opensea.io/assets/1",
+    ask: {
+      label: "1 ETH",
+      href: "https://example.com/ask/1",
+    },
+    settlement: {
+      label: "0.5 ETH",
+      href: "https://example.com/settlement/1",
+    },
+    subgoalsAgents: [],
+    parentGoalAgent: "0x",
+  },
+  {
+    nftId: BigInt(2),
+    nftType: Category.InfluenceB,
+    agentWallet: "0x123",
+    agentId: "1",
+    agentName: "Agent 1",
+    status: Status.Ongoing,
+    goal: "Sample Goal 2",
+    asset: "ETH",
+    owner: "0x456",
+    price: BigInt(200),
+    abilityScore: BigInt(90),
+    subgoalsId: [],
+    parentGoalId: BigInt(0),
+    settlementLink: "https://example.com/settlement/2",
+    openseaLink: "https://opensea.io/assets/2",
+    ask: {
+      label: "2 ETH",
+      href: "https://example.com/ask/2",
+    },
+    settlement: {
+      label: "1 ETH",
+      href: "https://example.com/settlement/2",
+    },
+    subgoalsAgents: [],
+    parentGoalAgent: "0x",
+  },
+];

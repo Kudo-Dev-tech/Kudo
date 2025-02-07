@@ -1,0 +1,21 @@
+services:
+    tee:
+        command:
+            ["pnpm", "start", "--character=./characters/kudo.character.json"]
+        build:
+            context: .
+            dockerfile: Dockerfile
+        stdin_open: true
+        tty: true
+        volumes:
+            - /var/run/tappd.sock:/var/run/tappd.sock
+            - tee:/app/packages/client-twitter/src/tweetcache
+            - tee:/app/db.sqlite
+        environment:
+            - TEE_MODE=DOCKER
+        ports:
+            - "3000:3000"
+        restart: always
+
+volumes:
+    tee:
