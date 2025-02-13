@@ -5,4 +5,6 @@ contract MockRouter {
     function sendRequest(uint64, bytes calldata, uint16, uint32, bytes32) external pure returns (bytes32) {
         return bytes32("1");
     }
+
+    function test() public {}
 }
