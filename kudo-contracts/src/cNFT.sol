@@ -78,6 +78,21 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
     /// @param teeId Agent registered tee identifier
     event AgentSet(address indexed agentWallet, string agentName, string agentId, string teeId);
 
+    /// @notice Emitted when a new Covenant NFT is registered
+    /// @param agentWallet The wallet address of the agent who registered the covenant
+    /// @param nftId The ID of the newly registered Covenant NFT
+    event CovenantRegistered(address indexed agentWallet, uint256 indexed nftId);
+
+    /// @notice Emitted when settlement data is set for a Covenant NFT
+    /// @param nftId The ID of the Covenant NFT
+    /// @param data The settlement data associated with the covenant
+    event SettlementDataSet(uint256 indexed nftId, string data);
+
+    /// @notice Emitted when the status of a Covenant NFT is updated
+    /// @param nftId The ID of the Covenant NFT
+    /// @param status The new status of the covenant (IN_PROGRESS, COMPLETED, or FAILED)
+    event CovenantStatusSet(uint256 indexed nftId, CovenantStatus status);
+
     /// @notice Thrown when the caller is not an authorized agent
     error CallerIsNotAuthorizedAgent();
 
@@ -91,8 +106,6 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
     struct CovenantData {
         /// @notice Agent wallet address
         address agentWallet;
-        /// @notice The agent ID
-        string agentId;
         /// @notice The current status of the covenant
         CovenantStatus status;
         /// @notice The covenant nft type
@@ -125,6 +138,8 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
         uint256 nftId;
         /// @notice The agent name
         string agentName;
+        /// @notice The agent identifier
+        string agentId;
         /// @notice The owner of the covenant
         address owner;
         /// @notice Settlement data
@@ -224,6 +239,9 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
         s_agentDetails[msg.sender].taskId.push(s_nftId);
 
         _mint(address(this), s_nftId);
+
+        emit CovenantRegistered(msg.sender, s_nftId);
+
         s_nftId++;
     }
 
@@ -264,6 +282,9 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
         s_nftIdToCovenantData[s_nftId].shouldWatch = shouldWatch;
 
         _mint(address(this), s_nftId);
+
+        emit CovenantRegistered(msg.sender, s_nftId);
+
         s_nftId++;
     }
 
@@ -276,6 +297,8 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
         }
 
         s_nftSettlementData[nftId] = data;
+
+        emit SettlementDataSet(nftId, data);
     }
 
     /// @notice Updates the status of Covenant NFT
@@ -310,6 +333,8 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
 
             _burn(nftId);
         }
+
+        emit CovenantStatusSet(nftId, status);
     }
 
     /// @notice Checks if an agent is registered
@@ -334,7 +359,6 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
         uint256 agentTaskAmt = s_agentDetails[agent].taskId.length;
         CovenantDetails[] memory data = new CovenantDetails[](agentTaskAmt);
 
-        string memory agentId = s_agentDetails[agent].agentId;
         string memory agentName = s_agentDetails[agent].agentName;
         for (uint256 i; i < agentTaskAmt; ++i) {
             uint256 currentNftId = s_agentDetails[agent].taskId[i];
@@ -355,10 +379,8 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
 
         for (uint256 i; i < s_nftId; ++i) {
             address agentWallet = s_nftIdToCovenantData[i].agentWallet;
-            string memory agentId = s_agentDetails[agentWallet].agentId;
-            string memory agentName = s_agentDetails[agentWallet].agentName;
             data[i].nftId = i;
-            data[i].agentName = agentName;
+            data[i].agentName = s_agentDetails[agentWallet].agentName;
             data[i].owner = _ownerOf(i);
             data[i].settlementData = s_nftSettlementData[i];
             data[i].covenantData = s_nftIdToCovenantData[i];
