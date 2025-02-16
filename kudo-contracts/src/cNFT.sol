@@ -10,26 +10,13 @@ import {
     IAccessControlDefaultAdminRules
 } from "openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {FunctionsClient} from "chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
-import {ConfirmedOwner} from "chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
-import {FunctionsRequest} from "chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
 
-contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient {
+contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
-    using FunctionsRequest for FunctionsRequest.Request;
 
-    /// @notice Gas limit for Chainlink callback
-    uint32 constant GAS_LIMIT = 300000;
-
-    /// @notice Chainlink Functions source code for API request
-    string constant SOURCE = "const address = args[0];" "const minScore = args[1];"
-        "const apiResponse = await Functions.makeHttpRequest({"
-        "url: `https://kudo-client.vercel.app/api/verification`," "method: 'POST'," "headers: {"
-        "'Content-Type': 'application/json'," "}," "data: {" "address: `${address}`," "minAbilityScore: `${minScore}`"
-        "}});" "if (apiResponse.error) { throw Error('Error');}" "const { data } = apiResponse;"
-        "return Functions.encodeString(data.abilityScore);";
+    bytes32 constant ROUTER_ROLE = keccak256("ROUTER_ROLE");
 
     /// @notice Covenant NFT Status
     enum CovenantStatus {
@@ -46,15 +33,6 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
 
     /// @notice Covenant NFT id counter
     uint256 s_nftId;
-
-    /// @notice Chainlink DON identifier
-    bytes32 i_donID;
-
-    /// @notice Chainlink functions router
-    address s_router;
-
-    /// @notice Chainlink functions subscription id
-    uint64 s_subsId;
 
     /// @notice Holds every agents id
     EnumerableSet.AddressSet s_agents;
@@ -79,9 +57,10 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
     event AgentSet(address indexed agentWallet, string agentName, string agentId, string teeId);
 
     /// @notice Emitted when a new Covenant NFT is registered
+    /// @param requestId ID for callback identfier
     /// @param agentWallet The wallet address of the agent who registered the covenant
     /// @param nftId The ID of the newly registered Covenant NFT
-    event CovenantRegistered(address indexed agentWallet, uint256 indexed nftId);
+    event CovenantRegistered(bytes32 requestId, address indexed agentWallet, uint256 indexed nftId);
 
     /// @notice Emitted when settlement data is set for a Covenant NFT
     /// @param nftId The ID of the Covenant NFT
@@ -160,14 +139,11 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
         uint256[] taskId;
     }
 
-    constructor(bytes32 donID, uint64 subsId, address router, address admin, uint48 initialDelay)
+    constructor(address router, address admin, uint48 initialDelay)
         ERC721("Covenant NFT", "cNFT")
         AccessControlDefaultAdminRules(initialDelay, admin)
-        FunctionsClient(router)
     {
-        s_router = router;
-        i_donID = donID;
-        s_subsId = subsId;
+        _grantRole(ROUTER_ROLE, router);
     }
 
     /// @notice Allows an agent to register themselves
@@ -214,13 +190,8 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
         uint128 price,
         bool shouldWatch,
         bytes calldata data
-    ) public {
-        string[] memory input = new string[](2);
-
-        input[0] = Strings.toHexString(uint256(uint160(msg.sender)), 20);
-        input[1] = Strings.toString(minAbilityScore);
-
-        bytes32 requestId = sendRequest(s_subsId, input);
+    ) public returns (bytes32) {
+        bytes32 requestId = keccak256("A");
 
         s_requestIdToNftId[requestId] = s_nftId;
 
@@ -240,9 +211,11 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
 
         _mint(address(this), s_nftId);
 
-        emit CovenantRegistered(msg.sender, s_nftId);
+        emit CovenantRegistered(requestId, msg.sender, s_nftId);
 
         s_nftId++;
+
+        return requestId;
     }
 
     /// @notice Registers as a subgoal for another Covenant NGT
@@ -261,13 +234,8 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
         uint128 settlementAmount,
         bool shouldWatch,
         bytes calldata data
-    ) public {
-        string[] memory input = new string[](2);
-
-        input[0] = Strings.toHexString(uint256(uint160(msg.sender)), 20);
-        input[1] = Strings.toString(s_nftIdToCovenantData[parentCovenantId].minAbilityScore);
-
-        bytes32 requestId = sendRequest(s_subsId, input);
+    ) public returns (bytes32) {
+        bytes32 requestId = keccak256(abi.encodePacked(msg.sender, s_nftId));
 
         s_requestIdToNftId[requestId] = s_nftId;
 
@@ -283,9 +251,11 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
 
         _mint(address(this), s_nftId);
 
-        emit CovenantRegistered(msg.sender, s_nftId);
+        emit CovenantRegistered(requestId, msg.sender, s_nftId);
 
         s_nftId++;
+
+        return requestId;
     }
 
     /// @notice Sets settlement data for a specific Covenant NFT
@@ -410,31 +380,8 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules, FunctionsClient 
             || interfaceId == type(IERC721).interfaceId || interfaceId == type(IERC721Metadata).interfaceId;
     }
 
-    /// @notice Sends an HTTP request for character information
-    /// @param subscriptionId The ID for the Chainlink subscription
-    /// @param args The arguments to pass to the HTTP request
-    /// @return requestId Request ID to Chainlink functions
-    function sendRequest(uint64 subscriptionId, string[] memory args) internal returns (bytes32 requestId) {
-        FunctionsRequest.Request memory req = FunctionsRequest.Request(
-            FunctionsRequest.Location.Inline,
-            FunctionsRequest.Location.Inline,
-            FunctionsRequest.CodeLanguage.JavaScript,
-            "",
-            "",
-            new string[](0),
-            new bytes[](0)
-        );
-        req.initializeRequestForInlineJavaScript(SOURCE); // Initialize the request with JS code
-        if (args.length > 0) req.setArgs(args); // Set the arguments for the request
-
-        // Send the request and store the request ID
-        return _sendRequest(req.encodeCBOR(), subscriptionId, GAS_LIMIT, i_donID);
-    }
-
-    /// @inheritdoc FunctionsClient
-    function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory) internal override {
+    function fulfillRequest(bytes32 requestId, uint128 abilityScore) external onlyRole(ROUTER_ROLE) {
         uint256 nftId = s_requestIdToNftId[requestId];
-        uint128 abilityScore = uint128(Strings.parseUint(string(response)));
 
         if (abilityScore < s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].parentGoalId].minAbilityScore) {
             _burn(nftId);

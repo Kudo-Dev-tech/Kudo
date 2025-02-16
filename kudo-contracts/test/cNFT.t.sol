@@ -38,7 +38,7 @@ contract CounterTest is Test {
     function setUp() public {
         s_router = new MockRouter();
 
-        s_cNft = new CovenantNFT(bytes32(""), 0, address(s_router), OWNER, INITIAL_DELAY);
+        s_cNft = new CovenantNFT(address(s_router), OWNER, INITIAL_DELAY);
 
         s_tee = "TEE 101";
         s_agentId = "Agent ID";
@@ -76,7 +76,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         assertEq(s_cNft.getCovenant(0).agentWallet, AGENT_WALLET_ONE);
@@ -99,7 +100,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
         registerSubgoalCovenant(
             AGENT_WALLET_ONE,
@@ -109,7 +111,8 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         assertEq(s_cNft.getCovenant(1).agentWallet, AGENT_WALLET_ONE);
@@ -131,7 +134,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         vm.expectRevert(CovenantNFT.CallerIsNotAuthorizedAgent.selector);
@@ -150,7 +154,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
         registerSubgoalCovenant(
             AGENT_WALLET_ONE,
@@ -160,7 +165,8 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         vm.startPrank(AGENT_WALLET_ONE);
@@ -180,7 +186,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
@@ -190,7 +197,8 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         s_testToken.mint(AGENT_WALLET_ONE, 10 ether);
@@ -215,7 +223,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         s_testToken.mint(AGENT_WALLET_ONE, 10 ether);
@@ -239,7 +248,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
@@ -249,7 +259,8 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         vm.startPrank(AGENT_WALLET_ONE);
@@ -270,7 +281,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
@@ -280,7 +292,8 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         vm.startPrank(AGENT_WALLET_TWO);
@@ -301,7 +314,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
@@ -311,7 +325,8 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         s_testToken.mint(AGENT_WALLET_ONE, 10 ether);
@@ -345,7 +360,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         s_testToken.mint(AGENT_WALLET_TWO, 10 ether);
@@ -373,7 +389,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         CovenantNFT.CovenantDetails[] memory data = s_cNft.getAgentCovenantsData(AGENT_WALLET_ONE);
@@ -401,7 +418,8 @@ contract CounterTest is Test {
             PRICE,
             1 ether,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         string memory teeId;
@@ -425,7 +443,8 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            1 ether
         )
     {
         CovenantNFT.CovenantDetails[] memory data = s_cNft.getCovenantsDetails();
@@ -458,11 +477,11 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
-            bytes("")
+            bytes(""),
+            0
         )
     {
         vm.startPrank(address(s_router));
-        s_cNft.handleOracleFulfillment(bytes32("1"), bytes("100000000000000000"), bytes(""));
 
         vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721NonexistentToken.selector, 1));
         assertEq(s_cNft.ownerOf(1), address(0));
@@ -484,12 +503,16 @@ contract CounterTest is Test {
         uint128 minAbilityScore,
         uint128 price,
         bool shouldWatch,
-        bytes memory data
+        bytes memory data,
+        uint256 agentAbilityScore
     ) {
         vm.startPrank(agent);
-        s_cNft.registerCovenant(
+        bytes32 registerId = s_cNft.registerCovenant(
             nftType, goal, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, data
         );
+
+        vm.startPrank(address(s_router));
+        s_cNft.fulfillRequest(registerId, uint128(agentAbilityScore));
         vm.stopPrank();
         _;
     }
@@ -502,13 +525,15 @@ contract CounterTest is Test {
         address settlementAsset,
         uint128 settelementAmount,
         bool shouldWatch,
-        bytes memory data
+        bytes memory data,
+        uint256 agentAbilityScore
     ) {
         vm.startPrank(agent);
-        s_cNft.registerCovenant(nftType, goal, parentId, settlementAsset, settelementAmount, shouldWatch, data);
+        bytes32 registerId =
+            s_cNft.registerCovenant(nftType, goal, parentId, settlementAsset, settelementAmount, shouldWatch, data);
 
         vm.startPrank(address(s_router));
-        s_cNft.handleOracleFulfillment(bytes32("1"), bytes("1000000000000000000"), bytes(""));
+        s_cNft.fulfillRequest(registerId, uint128(agentAbilityScore));
 
         vm.stopPrank();
         _;

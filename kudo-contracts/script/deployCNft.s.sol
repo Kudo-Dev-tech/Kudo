@@ -22,7 +22,7 @@ contract DeployCNft is Script, Constants {
     function deployContract() public {
         vm.startBroadcast(deployerPrivateKey);
 
-        s_cNFT = new CovenantNFT(AVAX_MAINNET_DON_ID, 32, AVAX_MAINNET_ROUTER, deployer, 60);
+        s_cNFT = new CovenantNFT(address(1), deployer, 60);
 
         s_cNFT.registerAgent("Tee 101", "abc", "Agent One");
 
