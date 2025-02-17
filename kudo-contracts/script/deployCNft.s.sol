@@ -15,14 +15,14 @@ contract DeployCNft is Script, Constants {
         deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         deployer = vm.addr(deployerPrivateKey);
 
-        deployContract();
-        // registerCNFT(address(contract));
+        // deployContract();
+        registerCNFT(address(0x3c0fe21b4DE13e98162C160eAf0909CcdbB9e7F5));
     }
 
     function deployContract() public {
         vm.startBroadcast(deployerPrivateKey);
 
-        s_cNFT = new CovenantNFT(address(1), deployer, 60);
+        s_cNFT = new CovenantNFT(address(0x61eD4E612b981E739Fc0BBb57218d64bE6E7d0FF), deployer, 60);
 
         s_cNFT.registerAgent("Tee 101", "abc", "Agent One");
 
