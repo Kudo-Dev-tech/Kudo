@@ -167,7 +167,7 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Allows user to purchase Covenant NFT
     /// @param nftId The ID of the NFT being purchased
     function purchase(uint256 nftId) external {
-        CovenantData memory covenant = s_nftIdToCovenantData[nftId];
+        CovenantData storage covenant = s_nftIdToCovenantData[nftId];
         IERC20(covenant.settlementAsset).safeTransferFrom(msg.sender, _ownerOf(nftId), covenant.price);
         _update(msg.sender, nftId, address(0));
     }
