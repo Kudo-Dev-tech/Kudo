@@ -55,7 +55,7 @@ console.log("Listening for events...");
 
 const retry = async (action, maxRetries = process.env.MAX_RETRIES) => {
   let attempts = 0;
-  let delay = 1000;
+  let delay = process.env.RETRY_DELAY;
 
   do {
     try {
