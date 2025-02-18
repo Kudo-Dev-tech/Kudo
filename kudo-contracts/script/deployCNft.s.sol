@@ -6,6 +6,10 @@ import {CovenantNFT} from "../src/cNFT.sol";
 import {Constants} from "../test/Constants.t.sol";
 
 contract DeployCNft is Script, Constants {
+    address constant COVENANT_NFT_ADDRESS = 0x7e5dfCc458F7f3c1c58251642A0a41DF9861B8F7;
+    address constant ROUTER_ADDRESS = 0x61eD4E612b981E739Fc0BBb57218d64bE6E7d0FF;
+    address constant USDC_ADDRESS = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
+
     CovenantNFT s_cNFT;
 
     uint256 deployerPrivateKey;
@@ -16,13 +20,13 @@ contract DeployCNft is Script, Constants {
         deployer = vm.addr(deployerPrivateKey);
 
         // deployContract();
-        registerCNFT(address(0x3c0fe21b4DE13e98162C160eAf0909CcdbB9e7F5));
+        registerCNFT(COVENANT_NFT_ADDRESS);
     }
 
     function deployContract() public {
         vm.startBroadcast(deployerPrivateKey);
 
-        s_cNFT = new CovenantNFT(address(0x61eD4E612b981E739Fc0BBb57218d64bE6E7d0FF), deployer, 60);
+        s_cNFT = new CovenantNFT(ROUTER_ADDRESS, deployer, 60);
 
         s_cNFT.registerAgent("Tee 101", "abc", "Agent One");
 
@@ -44,7 +48,7 @@ contract DeployCNft is Script, Constants {
         s_cNFT.registerCovenant(
             CovenantNFT.NftType.EMPLOYMENT,
             "Post a short explaination of project A",
-            0x036CbD53842c5426634e7929541eC2318f3dCF7e,
+            USDC_ADDRESS,
             1_000_000,
             1 ether,
             1_000_000,

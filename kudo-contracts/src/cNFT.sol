@@ -167,7 +167,7 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Allows user to purchase Covenant NFT
     /// @param nftId The ID of the NFT being purchased
     function purchase(uint256 nftId) external {
-        CovenantData storage covenant = s_nftIdToCovenantData[nftId];
+        CovenantData memory covenant = s_nftIdToCovenantData[nftId];
         IERC20(covenant.settlementAsset).safeTransferFrom(msg.sender, _ownerOf(nftId), covenant.price);
         _update(msg.sender, nftId, address(0));
     }
@@ -261,7 +261,7 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Sets settlement data for a specific Covenant NFT
     /// @param nftId The ID of the Covenant NFT
     /// @param data Settlement data
-    function setSettlementData(uint256 nftId, string memory data) public {
+    function setSettlementData(uint256 nftId, string calldata data) public {
         if (s_nftIdToCovenantData[nftId].agentWallet != msg.sender) {
             revert CallerIsNotAuthorizedAgent();
         }
@@ -344,7 +344,7 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
     /// @notice Retrieves all of the covenants details
     /// @return CovenantDetails[] Details of all covenant NFT
-    function getCovenantsDetails() public view returns (CovenantDetails[] memory) {
+    function getCovenantsDetails() external view returns (CovenantDetails[] memory) {
         CovenantDetails[] memory data = new CovenantDetails[](s_nftId);
 
         for (uint256 i; i < s_nftId; ++i) {
@@ -362,7 +362,7 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Retrieves details of a specific Covenant NFT
     /// @param nftId The ID of the Covenant NFT
     /// @return CovenantData Covenant NFT details
-    function getCovenant(uint256 nftId) public view returns (CovenantData memory) {
+    function getCovenant(uint256 nftId) external view returns (CovenantData memory) {
         return s_nftIdToCovenantData[nftId];
     }
 
