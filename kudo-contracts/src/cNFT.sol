@@ -3,7 +3,6 @@ pragma solidity 0.8.27;
 
 import {ERC721, IERC721, IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Strings} from "openzeppelin-contracts/contracts/utils/Strings.sol";
 import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import {
     AccessControlDefaultAdminRules,
@@ -11,12 +10,10 @@ import {
 } from "openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
+abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
     using EnumerableSet for EnumerableSet.UintSet;
-
-    bytes32 constant ROUTER_ROLE = keccak256("ROUTER_ROLE");
 
     /// @notice Covenant NFT Status
     enum CovenantStatus {
@@ -139,12 +136,10 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint256[] taskId;
     }
 
-    constructor(address router, address admin, uint48 initialDelay)
+    constructor(address admin, uint48 initialDelay)
         ERC721("Covenant NFT", "cNFT")
         AccessControlDefaultAdminRules(initialDelay, admin)
-    {
-        _grantRole(ROUTER_ROLE, router);
-    }
+    {}
 
     /// @notice Allows an agent to register themselves
     /// @param teeId TEE identifier of the agent
@@ -190,33 +185,7 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 price,
         bool shouldWatch,
         bytes calldata data
-    ) public returns (bytes32) {
-        bytes32 requestId = keccak256("A");
-
-        s_requestIdToNftId[requestId] = s_nftId;
-
-        s_nftIdToCovenantData[s_nftId].agentWallet = msg.sender;
-        s_nftIdToCovenantData[s_nftId].nftType = nftType;
-        s_nftIdToCovenantData[s_nftId].goal = task;
-        s_nftIdToCovenantData[s_nftId].parentGoalId = uint64(s_nftId);
-        s_nftIdToCovenantData[s_nftId].settlementAsset = settlementAsset;
-        s_nftIdToCovenantData[s_nftId].settlementAmount = settlementAmount;
-        s_nftIdToCovenantData[s_nftId].data = data;
-        s_nftIdToCovenantData[s_nftId].minAbilityScore = minAbilityScore;
-        s_nftIdToCovenantData[s_nftId].status = CovenantStatus.IN_PROGRESS;
-        s_nftIdToCovenantData[s_nftId].shouldWatch = shouldWatch;
-        s_nftIdToCovenantData[s_nftId].price = uint128(price);
-
-        s_agentDetails[msg.sender].taskId.push(s_nftId);
-
-        _mint(address(this), s_nftId);
-
-        emit CovenantRegistered(requestId, msg.sender, s_nftId);
-
-        s_nftId++;
-
-        return requestId;
-    }
+    ) public virtual returns (bytes32);
 
     /// @notice Registers as a subgoal for another Covenant NGT
     /// @param nftType Type of Covenant NFT
@@ -234,29 +203,7 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 settlementAmount,
         bool shouldWatch,
         bytes calldata data
-    ) public returns (bytes32) {
-        bytes32 requestId = keccak256(abi.encodePacked(msg.sender, s_nftId));
-
-        s_requestIdToNftId[requestId] = s_nftId;
-
-        s_nftIdToCovenantData[s_nftId].agentWallet = msg.sender;
-        s_nftIdToCovenantData[s_nftId].status = CovenantStatus.IN_PROGRESS;
-        s_nftIdToCovenantData[s_nftId].nftType = nftType;
-        s_nftIdToCovenantData[s_nftId].goal = task;
-        s_nftIdToCovenantData[s_nftId].parentGoalId = uint64(parentCovenantId);
-        s_nftIdToCovenantData[s_nftId].settlementAsset = settlementAsset;
-        s_nftIdToCovenantData[s_nftId].settlementAmount = settlementAmount;
-        s_nftIdToCovenantData[s_nftId].data = data;
-        s_nftIdToCovenantData[s_nftId].shouldWatch = shouldWatch;
-
-        _mint(address(this), s_nftId);
-
-        emit CovenantRegistered(requestId, msg.sender, s_nftId);
-
-        s_nftId++;
-
-        return requestId;
-    }
+    ) public virtual returns (bytes32);
 
     /// @notice Sets settlement data for a specific Covenant NFT
     /// @param nftId The ID of the Covenant NFT
@@ -378,23 +325,5 @@ contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     {
         return interfaceId == type(IAccessControlDefaultAdminRules).interfaceId
             || interfaceId == type(IERC721).interfaceId || interfaceId == type(IERC721Metadata).interfaceId;
-    }
-
-    function fulfillRequest(bytes32 requestId, uint128 abilityScore) external onlyRole(ROUTER_ROLE) {
-        uint256 nftId = s_requestIdToNftId[requestId];
-
-        if (abilityScore < s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].parentGoalId].minAbilityScore) {
-            _burn(nftId);
-            return;
-        }
-
-        s_nftIdToCovenantData[nftId].abilityScore = abilityScore;
-
-        if (nftId != s_nftIdToCovenantData[nftId].parentGoalId) {
-            s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].parentGoalId].subgoalsId.push(uint64(nftId));
-            s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].taskId.push(nftId);
-        }
-
-        _transfer(address(this), s_nftIdToCovenantData[nftId].agentWallet, nftId);
     }
 }

@@ -3,6 +3,7 @@ pragma solidity 0.8.27;
 
 import "forge-std/Script.sol";
 import {CovenantNFT} from "../src/cNFT.sol";
+import {CovenantNFTKudoNode} from "../src/cNFTKudoNode.sol";
 import {Constants} from "../test/Constants.t.sol";
 
 contract DeployCNft is Script, Constants {
@@ -26,7 +27,7 @@ contract DeployCNft is Script, Constants {
     function deployContract() public {
         vm.startBroadcast(deployerPrivateKey);
 
-        s_cNFT = new CovenantNFT(ROUTER_ADDRESS, deployer, 60);
+        s_cNFT = new CovenantNFTKudoNode(ROUTER_ADDRESS, deployer, 60);
 
         s_cNFT.registerAgent("Tee 101", "abc", "Agent One");
 
