@@ -58,29 +58,9 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
 
         bytes32 requestId = sendRequest(s_subsId, input);
 
-        s_requestIdToNftId[requestId] = s_nftId;
-
-        s_nftIdToCovenantData[s_nftId].agentWallet = msg.sender;
-        s_nftIdToCovenantData[s_nftId].nftType = nftType;
-        s_nftIdToCovenantData[s_nftId].goal = task;
-        s_nftIdToCovenantData[s_nftId].parentGoalId = uint64(s_nftId);
-        s_nftIdToCovenantData[s_nftId].settlementAsset = settlementAsset;
-        s_nftIdToCovenantData[s_nftId].settlementAmount = settlementAmount;
-        s_nftIdToCovenantData[s_nftId].data = data;
-        s_nftIdToCovenantData[s_nftId].minAbilityScore = minAbilityScore;
-        s_nftIdToCovenantData[s_nftId].status = CovenantStatus.IN_PROGRESS;
-        s_nftIdToCovenantData[s_nftId].shouldWatch = shouldWatch;
-        s_nftIdToCovenantData[s_nftId].price = uint128(price);
-
-        s_agentDetails[msg.sender].taskId.push(s_nftId);
-
-        _mint(address(this), s_nftId);
-
-        emit CovenantRegistered(requestId, msg.sender, s_nftId);
-
-        s_nftId++;
-
-        return requestId;
+        return _handleCovenantRegistration(
+            requestId, nftType, task, settlementAsset, settlementAmount, minAbilityScore, price, shouldWatch, data
+        );
     }
 
     /// @inheritdoc CovenantNFT
@@ -100,25 +80,9 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
 
         bytes32 requestId = sendRequest(s_subsId, input);
 
-        s_requestIdToNftId[requestId] = s_nftId;
-
-        s_nftIdToCovenantData[s_nftId].agentWallet = msg.sender;
-        s_nftIdToCovenantData[s_nftId].status = CovenantStatus.IN_PROGRESS;
-        s_nftIdToCovenantData[s_nftId].nftType = nftType;
-        s_nftIdToCovenantData[s_nftId].goal = task;
-        s_nftIdToCovenantData[s_nftId].parentGoalId = uint64(parentCovenantId);
-        s_nftIdToCovenantData[s_nftId].settlementAsset = settlementAsset;
-        s_nftIdToCovenantData[s_nftId].settlementAmount = settlementAmount;
-        s_nftIdToCovenantData[s_nftId].data = data;
-        s_nftIdToCovenantData[s_nftId].shouldWatch = shouldWatch;
-
-        _mint(address(this), s_nftId);
-
-        emit CovenantRegistered(requestId, msg.sender, s_nftId);
-
-        s_nftId++;
-
-        return requestId;
+        return _handleSubgoalCovenantRegistration(
+            requestId, nftType, task, parentCovenantId, settlementAsset, settlementAmount, shouldWatch, data
+        );
     }
 
     /// @inheritdoc FunctionsClient
@@ -126,16 +90,7 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         uint256 nftId = s_requestIdToNftId[requestId];
         uint128 abilityScore = uint128(Strings.parseUint(string(response)));
 
-        if (abilityScore < s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].parentGoalId].minAbilityScore) {
-            _burn(nftId);
-            return;
-        }
-        s_nftIdToCovenantData[nftId].abilityScore = abilityScore;
-        if (nftId != s_nftIdToCovenantData[nftId].parentGoalId) {
-            s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].parentGoalId].subgoalsId.push(uint64(nftId));
-            s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].taskId.push(nftId);
-        }
-        _transfer(address(this), s_nftIdToCovenantData[nftId].agentWallet, nftId);
+        _processCallback(abilityScore, nftId);
     }
 
     /// @notice Sends an HTTP request for character information
