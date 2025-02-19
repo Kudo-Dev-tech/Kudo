@@ -2,12 +2,12 @@
 pragma solidity 0.8.27;
 
 import "forge-std/Script.sol";
-import {CovenantNFT} from "../src/cNFT.sol";
+import {CovenantNFT} from "../src/CovenantNFT.sol";
 import {CovenantNFTKudoNode} from "../src/cNFTKudoNode.sol";
 import {Constants} from "../test/Constants.t.sol";
 
 contract DeployCNft is Script, Constants {
-    address constant COVENANT_NFT_ADDRESS = 0x7e5dfCc458F7f3c1c58251642A0a41DF9861B8F7;
+    address constant COVENANT_NFT_ADDRESS = 0xb21abC29A71AEFE7Fc3e7395B9f79bA88Fd164a7;
     address constant ROUTER_ADDRESS = 0x61eD4E612b981E739Fc0BBb57218d64bE6E7d0FF;
     address constant USDC_ADDRESS = 0x036CbD53842c5426634e7929541eC2318f3dCF7e;
 

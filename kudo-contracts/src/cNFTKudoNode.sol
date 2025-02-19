@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.27;
 
-import {CovenantNFT} from "./cNFT.sol";
+import {CovenantNFT} from "./CovenantNFT.sol";
 
 contract CovenantNFTKudoNode is CovenantNFT {
     bytes32 constant ROUTER_ROLE = keccak256("ROUTER_ROLE");
