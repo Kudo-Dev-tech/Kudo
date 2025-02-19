@@ -2,23 +2,27 @@ require("dotenv").config();
 const { ethers } = require("ethers");
 const axios = require("axios"); // For making API calls
 
-const API_KEY = process.env.API_KEY;
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const provider = new ethers.WebSocketProvider(process.env.RPC_URL);
 
 const contractAddress = process.env.CONTRACT_ADDRESS;
-const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
+const wallet = new ethers.Wallet(
+  PRIVATE_KEY,
+  new ethers.JsonRpcProvider(process.env.HTTP_RPC_URL)
+);
 
 const contractABI = [
   "event CovenantRegistered(bytes32 requestId, address indexed agentWallet, uint256 indexed nftId)",
   "function fulfillRequest(bytes32 requestId, uint128 abilityScore) external",
 ];
 
+const event = new ethers.Contract(contractAddress, contractABI, provider);
+
 const contract = new ethers.Contract(contractAddress, contractABI, wallet);
 
 const filter = contract.filters.CovenantRegistered();
 
-contract.on(filter, async (log) => {
+event.on(filter, async (log) => {
   console.log("Event detected");
   console.log("Request ID:", log.args[0]);
   console.log("Agent Wallet", log.args[1]);
