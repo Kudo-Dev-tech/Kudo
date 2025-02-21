@@ -82,6 +82,8 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     struct CovenantData {
         /// @notice Agent wallet address
         address agentWallet;
+        /// @notice The agent ID
+        string agentId;
         /// @notice The current status of the covenant
         CovenantStatus status;
         /// @notice The covenant nft type
@@ -89,19 +91,19 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         /// @notice The description of the goal
         string goal;
         /// @notice List of subgoals cNFT id
-        uint64[] subgoalsId;
-        /// @notice Parent goal id
-        uint64 parentGoalId;
+        uint256[] subgoalsId;
         /// @notice The amount needed to purchase the NFT
-        uint128 price;
+        uint256 price;
+        /// @notice Parent goal id
+        uint256 parentGoalId;
         /// @notice The promised asset at settlement
         address settlementAsset;
         /// @notice The promised asset amount at settlement
-        uint128 settlementAmount;
+        uint256 settlementAmount;
         /// @notice agent minimum ability score to mint covenant
-        uint128 minAbilityScore;
+        uint256 minAbilityScore;
         /// @notice The ability score
-        uint128 abilityScore;
+        uint256 abilityScore;
         /// @notice Status of covenant's agent watch status
         bool shouldWatch;
         /// @notice Arbitrary data that can be stored alongside the NFT
@@ -112,19 +114,40 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     struct CovenantDetails {
         /// @notice covenant nft id
         uint256 nftId;
+        /// @notice The covenant nft type
+        NftType nftType;
+        /// @notice Agent wallet address
+        address agentWallet;
+        /// @notice The agent ID
+        string agentId;
         /// @notice The agent name
         string agentName;
-        /// @notice The agent identifier
-        string agentId;
+        /// @notice The current status of the covenant
+        CovenantStatus status;
+        /// @notice The description of the goal
+        string goal;
+        /// @notice The promised asset at settlement
+        address settlementAsset;
         /// @notice The owner of the covenant
         address owner;
+        /// @notice The promised asset amount at settlement
+        uint256 settlementAmount;
+        /// @notice The amount needed to purchase the NFT
+        uint256 price;
+        /// @notice The ability score
+        uint256 abilityScore;
+        /// @notice List of subgoals cNFT id
+        uint256[] subgoalsId;
+        /// @notice Parent goal id
+        uint256 parentGoalId;
         /// @notice Settlement data
         string settlementData;
-        /// @notice Covenant NFT data
-        CovenantData covenantData;
+        /// @notice Status of covenant's agent watch status
+        bool shouldWatch;
+        /// @notice Arbitrary data that can be stored alongside the NFT
+        bytes data;
     }
 
-    /// @notice Agent's management detail
     struct AgentManagement {
         /// @notice The TEE ID the agent is running in
         string teeId;
@@ -180,9 +203,9 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         NftType nftType,
         string calldata task,
         address settlementAsset,
-        uint128 settlementAmount,
-        uint128 minAbilityScore,
-        uint128 price,
+        uint256 settlementAmount,
+        uint256 minAbilityScore,
+        uint256 price,
         bool shouldWatch,
         bytes calldata data
     ) public virtual returns (bytes32);
@@ -198,9 +221,9 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     function registerCovenant(
         NftType nftType,
         string calldata task,
-        uint128 parentCovenantId,
+        uint256 parentCovenantId,
         address settlementAsset,
-        uint128 settlementAmount,
+        uint256 settlementAmount,
         bool shouldWatch,
         bytes calldata data
     ) public virtual returns (bytes32);
@@ -242,11 +265,13 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
             }
 
             address agentWallet = s_nftIdToCovenantData[nftId].agentWallet;
-
-            //slither-disable-next-line arbitrary-send-erc20
-            IERC20(s_nftIdToCovenantData[nftId].settlementAsset).safeTransferFrom(
-                agentWallet, ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementAmount
-            );
+            address settlementAsset = s_nftIdToCovenantData[nftId].settlementAsset;
+            if (settlementAsset != address(0)) {
+                //slither-disable-next-line arbitrary-send-erc20
+                IERC20(s_nftIdToCovenantData[nftId].settlementAsset).safeTransferFrom(
+                    agentWallet, ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementAmount
+                );
+            }
 
             _burn(nftId);
         }
@@ -259,9 +284,9 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         NftType nftType,
         string calldata task,
         address settlementAsset,
-        uint128 settlementAmount,
-        uint128 minAbilityScore,
-        uint128 price,
+        uint256 settlementAmount,
+        uint256 minAbilityScore,
+        uint256 price,
         bool shouldWatch,
         bytes calldata data
     ) internal returns (bytes32) {
@@ -294,9 +319,9 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         bytes32 requestId,
         NftType nftType,
         string calldata task,
-        uint128 parentCovenantId,
+        uint256 parentCovenantId,
         address settlementAsset,
-        uint128 settlementAmount,
+        uint256 settlementAmount,
         bool shouldWatch,
         bytes calldata data
     ) internal returns (bytes32) {
@@ -349,38 +374,59 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         return (s_agentDetails[agent].teeId, s_agentDetails[agent].taskId);
     }
 
-    /// @notice Retrieves agent assigned covenants details
-    /// @param agent Agent wallet address
-    /// @return CovenantDetails[] Details of agent assigned covenant NFT
     function getAgentCovenantsData(address agent) public view returns (CovenantDetails[] memory) {
         uint256 agentTaskAmt = s_agentDetails[agent].taskId.length;
         CovenantDetails[] memory data = new CovenantDetails[](agentTaskAmt);
 
+        string memory agentId = s_agentDetails[agent].agentId;
         string memory agentName = s_agentDetails[agent].agentName;
         for (uint256 i; i < agentTaskAmt; ++i) {
             uint256 currentNftId = s_agentDetails[agent].taskId[i];
             data[i].agentName = agentName;
+            data[i].agentId = agentId;
             data[i].nftId = currentNftId;
+            data[i].nftType = s_nftIdToCovenantData[currentNftId].nftType;
+            data[i].agentWallet = s_nftIdToCovenantData[currentNftId].agentWallet;
+            data[i].goal = s_nftIdToCovenantData[currentNftId].goal;
+            data[i].settlementAsset = s_nftIdToCovenantData[currentNftId].settlementAsset;
+            data[i].settlementAmount = s_nftIdToCovenantData[currentNftId].settlementAmount;
+            data[i].data = s_nftIdToCovenantData[currentNftId].data;
+            data[i].status = s_nftIdToCovenantData[currentNftId].status;
+            data[i].shouldWatch = s_nftIdToCovenantData[currentNftId].shouldWatch;
+            data[i].price = s_nftIdToCovenantData[currentNftId].price;
+            data[i].subgoalsId = s_nftIdToCovenantData[currentNftId].subgoalsId;
+            data[i].abilityScore = s_nftIdToCovenantData[currentNftId].abilityScore;
             data[i].owner = _ownerOf(currentNftId);
             data[i].settlementData = s_nftSettlementData[currentNftId];
-            data[i].covenantData = s_nftIdToCovenantData[currentNftId];
         }
 
         return data;
     }
 
-    /// @notice Retrieves all of the covenants details
-    /// @return CovenantDetails[] Details of all covenant NFT
-    function getCovenantsDetails() external view returns (CovenantDetails[] memory) {
+    function getCovenantsDetails() public view returns (CovenantDetails[] memory) {
         CovenantDetails[] memory data = new CovenantDetails[](s_nftId);
 
         for (uint256 i; i < s_nftId; ++i) {
             address agentWallet = s_nftIdToCovenantData[i].agentWallet;
+            string memory agentId = s_agentDetails[agentWallet].agentId;
+            string memory agentName = s_agentDetails[agentWallet].agentName;
             data[i].nftId = i;
-            data[i].agentName = s_agentDetails[agentWallet].agentName;
+            data[i].agentName = agentName;
+            data[i].agentId = agentId;
+            data[i].nftType = s_nftIdToCovenantData[i].nftType;
+            data[i].agentWallet = agentWallet;
+            data[i].goal = s_nftIdToCovenantData[i].goal;
+            data[i].settlementAsset = s_nftIdToCovenantData[i].settlementAsset;
+            data[i].settlementAmount = s_nftIdToCovenantData[i].settlementAmount;
+            data[i].status = s_nftIdToCovenantData[i].status;
+            data[i].shouldWatch = s_nftIdToCovenantData[i].shouldWatch;
+            data[i].price = s_nftIdToCovenantData[i].price;
+            data[i].abilityScore = s_nftIdToCovenantData[i].abilityScore;
+            data[i].parentGoalId = s_nftIdToCovenantData[i].parentGoalId;
+            data[i].subgoalsId = s_nftIdToCovenantData[i].subgoalsId;
             data[i].owner = _ownerOf(i);
             data[i].settlementData = s_nftSettlementData[i];
-            data[i].covenantData = s_nftIdToCovenantData[i];
+            data[i].data = s_nftIdToCovenantData[i].data;
         }
 
         return data;

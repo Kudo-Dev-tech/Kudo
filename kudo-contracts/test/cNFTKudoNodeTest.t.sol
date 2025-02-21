@@ -398,14 +398,14 @@ contract CounterTest is Test {
         CovenantNFT.CovenantDetails[] memory data = s_cNft.getAgentCovenantsData(AGENT_WALLET_ONE);
 
         assertEq(data[0].nftId, 0);
-        assertEq(uint256(data[0].covenantData.nftType), 1);
-        assertEq(data[0].covenantData.agentWallet, AGENT_WALLET_ONE);
-        assertEq(data[0].covenantData.goal, s_goal);
-        assertEq(data[0].covenantData.data, bytes(""));
-        assertEq(data[0].covenantData.shouldWatch, SHOULD_WATCH);
-        assertEq(data[0].covenantData.settlementAsset, address(s_testToken));
-        assertEq(data[0].covenantData.settlementAmount, SETTLEMENT_TARGET);
-        assertEq(uint256(data[0].covenantData.status), 0);
+        assertEq(uint256(data[0].nftType), 1);
+        assertEq(data[0].agentWallet, AGENT_WALLET_ONE);
+        assertEq(data[0].goal, s_goal);
+        assertEq(data[0].data, bytes(""));
+        assertEq(data[0].shouldWatch, SHOULD_WATCH);
+        assertEq(data[0].settlementAsset, address(s_testToken));
+        assertEq(data[0].settlementAmount, SETTLEMENT_TARGET);
+        assertEq(uint256(data[0].status), 0);
     }
 
     function test_GetAgentDetails()
@@ -452,14 +452,14 @@ contract CounterTest is Test {
         CovenantNFT.CovenantDetails[] memory data = s_cNft.getCovenantsDetails();
 
         assertEq(data[0].nftId, 0);
-        assertEq(uint256(data[0].covenantData.nftType), 1);
-        assertEq(data[0].covenantData.agentWallet, AGENT_WALLET_ONE);
-        assertEq(data[0].covenantData.goal, s_goal);
-        assertEq(data[0].covenantData.data, bytes(""));
-        assertEq(data[0].covenantData.shouldWatch, SHOULD_WATCH);
-        assertEq(data[0].covenantData.settlementAsset, address(s_testToken));
-        assertEq(data[0].covenantData.settlementAmount, SETTLEMENT_TARGET);
-        assertEq(uint256(data[0].covenantData.status), 0);
+        assertEq(uint256(data[0].nftType), 1);
+        assertEq(data[0].agentWallet, AGENT_WALLET_ONE);
+        assertEq(data[0].goal, s_goal);
+        assertEq(data[0].data, bytes(""));
+        assertEq(data[0].shouldWatch, SHOULD_WATCH);
+        assertEq(data[0].settlementAsset, address(s_testToken));
+        assertEq(data[0].settlementAmount, SETTLEMENT_TARGET);
+        assertEq(uint256(data[0].status), 0);
     }
 
     function test_SupportsInterface() public view {

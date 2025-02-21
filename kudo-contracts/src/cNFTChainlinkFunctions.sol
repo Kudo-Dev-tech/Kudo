@@ -45,9 +45,9 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         NftType nftType,
         string calldata task,
         address settlementAsset,
-        uint128 settlementAmount,
-        uint128 minAbilityScore,
-        uint128 price,
+        uint256 settlementAmount,
+        uint256 minAbilityScore,
+        uint256 price,
         bool shouldWatch,
         bytes calldata data
     ) public override returns (bytes32) {
@@ -67,9 +67,9 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
     function registerCovenant(
         NftType nftType,
         string calldata task,
-        uint128 parentCovenantId,
+        uint256 parentCovenantId,
         address settlementAsset,
-        uint128 settlementAmount,
+        uint256 settlementAmount,
         bool shouldWatch,
         bytes calldata data
     ) public override returns (bytes32) {
