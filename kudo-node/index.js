@@ -36,9 +36,19 @@ event.on(filter, async (log) => {
     minAbilityScore: 0,
   };
 
-  const response = await axios.post(apiUrl, requestData, {
-    headers: { "Content-Type": "application/json" },
-  });
+  let response;
+
+  try {
+    await retry(async () => {
+      console.log("Calling API...");
+      response = await axios.post(apiUrl, requestData, {
+        headers: { "Content-Type": "application/json" },
+      });
+      console.log("API call successful...");
+    });
+  } catch (error) {
+    console.log("Error requesting ability point...");
+  }
 
   const abilityScore = retry(async () => {
     response.data.abilityScore;
@@ -50,7 +60,7 @@ event.on(filter, async (log) => {
       const tx = await contract.fulfillRequest(requestId, abilityScore);
       console.log("Transaction sent, awaiting confirmation...");
       await tx.wait(-1);
-      console.log("Transaction confirmed. Fulfilled request.");
+      console.log("Transaction confirmed. Fulfilled request...");
     });
   } catch (error) {
     console.error("Error fulfilling request:", error);
