@@ -40,7 +40,9 @@ event.on(filter, async (log) => {
     headers: { "Content-Type": "application/json" },
   });
 
-  const abilityScore = response.data.abilityScore;
+  const abilityScore = retry(async () => {
+    response.data.abilityScore;
+  });
 
   try {
     await retry(async () => {
