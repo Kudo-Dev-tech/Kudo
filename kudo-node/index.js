@@ -55,6 +55,16 @@ event.on(filter, async (log) => {
   }
 });
 
+setInterval(async () => {
+  try {
+    await provider.getBlockNumber(); // Simple request to keep the WebSocket alive
+    console.log("Ping sent to WebSocket by requesting block number");
+  } catch (error) {
+    console.error("WebSocket ping failed:", error);
+  }
+  console.log("Ping sent to WebSocket");
+}, process.env.PING_INTERVAL);
+
 console.log("Listening for events...");
 
 const retry = async (action, maxRetries = process.env.MAX_RETRIES) => {
