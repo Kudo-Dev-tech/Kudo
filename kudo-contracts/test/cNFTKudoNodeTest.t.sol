@@ -3,9 +3,11 @@ pragma solidity ^0.8.13;
 
 import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
-import {CovenantNFT} from "../src/cNFT.sol";
+import {CovenantNFT} from "../src/CovenantNFT.sol";
+import {CovenantNFTKudoNode} from "../src/cNFTKudoNode.sol";
 import {MockRouter} from "./mock/mockRouter.sol";
 import {ERC721, IERC721, IERC721Metadata, IERC721Errors} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {
     AccessControlDefaultAdminRules,
     IAccessControlDefaultAdminRules
@@ -24,7 +26,7 @@ contract CounterTest is Test {
 
     address constant OWNER = address(1);
 
-    CovenantNFT public s_cNft;
+    CovenantNFTKudoNode public s_cNft;
 
     MockRouter public s_router;
 
@@ -38,7 +40,7 @@ contract CounterTest is Test {
     function setUp() public {
         s_router = new MockRouter();
 
-        s_cNft = new CovenantNFT(address(s_router), OWNER, INITIAL_DELAY);
+        s_cNft = new CovenantNFTKudoNode(address(s_router), OWNER, INITIAL_DELAY);
 
         s_tee = "TEE 101";
         s_agentId = "Agent ID";
@@ -507,12 +509,12 @@ contract CounterTest is Test {
         uint256 agentAbilityScore
     ) {
         vm.startPrank(agent);
-        bytes32 registerId = s_cNft.registerCovenant(
+        bytes32 requestId = s_cNft.registerCovenant(
             nftType, goal, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, data
         );
 
         vm.startPrank(address(s_router));
-        s_cNft.fulfillRequest(registerId, uint128(agentAbilityScore));
+        s_cNft.fulfillRequest(requestId, uint128(agentAbilityScore));
         vm.stopPrank();
         _;
     }
@@ -529,11 +531,11 @@ contract CounterTest is Test {
         uint256 agentAbilityScore
     ) {
         vm.startPrank(agent);
-        bytes32 registerId =
+        bytes32 requestId =
             s_cNft.registerCovenant(nftType, goal, parentId, settlementAsset, settelementAmount, shouldWatch, data);
 
         vm.startPrank(address(s_router));
-        s_cNft.fulfillRequest(registerId, uint128(agentAbilityScore));
+        s_cNft.fulfillRequest(requestId, uint128(agentAbilityScore));
 
         vm.stopPrank();
         _;
