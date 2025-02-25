@@ -50,9 +50,7 @@ event.on(filter, async (log) => {
     console.log("Error requesting ability point...");
   }
 
-  const abilityScore = retry(async () => {
-    response.data.abilityScore;
-  });
+  const abilityScore = BigInt(response.data.abilityScore);
 
   try {
     await retry(async () => {
