@@ -42,7 +42,6 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
 
     /// @inheritdoc CovenantNFT
     function registerCovenant(
-        NftType nftType,
         string calldata task,
         address settlementAsset,
         uint128 settlementAmount,
@@ -59,13 +58,12 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         bytes32 requestId = sendRequest(s_subsId, input);
 
         return _handleCovenantRegistration(
-            requestId, nftType, task, settlementAsset, settlementAmount, minAbilityScore, price, shouldWatch, data
+            requestId, task, settlementAsset, settlementAmount, minAbilityScore, price, shouldWatch, data
         );
     }
 
     /// @inheritdoc CovenantNFT
     function registerCovenant(
-        NftType nftType,
         string calldata task,
         uint128 parentCovenantId,
         address settlementAsset,
@@ -81,7 +79,7 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         bytes32 requestId = sendRequest(s_subsId, input);
 
         return _handleSubgoalCovenantRegistration(
-            requestId, nftType, task, parentCovenantId, settlementAsset, settlementAmount, shouldWatch, data
+            requestId, task, parentCovenantId, settlementAsset, settlementAmount, shouldWatch, data
         );
     }
 
