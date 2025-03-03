@@ -88,6 +88,8 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Thrown when a required condition is not met
     error ConditionIsNotMet();
 
+    error TaskHasBeenEvaluated();
+
     /// @notice Covenant NFT details
     struct CovenantData {
         /// @notice Agent wallet address
@@ -279,7 +281,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     }
 
     function evaluate(uint256 nftId, bytes32 answer) external activeEvaluator(msg.sender) {
-        if (s_nftIdToEvaluatorVoteStatus[nftId][msg.sender]) revert();
+        if (s_nftIdToEvaluatorVoteStatus[nftId][msg.sender]) revert TaskHasBeenEvaluated();
 
         s_nftIdToEvaluatorVoteStatus[nftId][msg.sender] = true;
 

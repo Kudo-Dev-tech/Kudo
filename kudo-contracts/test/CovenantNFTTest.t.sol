@@ -68,7 +68,53 @@ contract CounterTest is Test {
         assertEq(s_cNft.s_whitelistedEvaluator(EVALUATOR_ONE), false);
     }
 
-    function test_EvaluateGoal()
+    function test_RevertWhen_EvaluatorNotWhitelisted()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+    {
+        vm.expectRevert(CovenantNFT.CallerIsNotAuthorized.selector);
+
+        vm.prank(STRANGER);
+        s_cNft.evaluate(0, bytes32("true"));
+    }
+
+    function test_RevertWhen_EvaluateGoalTwice()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+        approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        evaluateGoal(EVALUATOR_ONE, 0, true)
+    {
+        vm.expectRevert(CovenantNFT.TaskHasBeenEvaluated.selector);
+
+        vm.prank(EVALUATOR_ONE);
+        s_cNft.evaluate(0, bytes32("true"));
+    }
+
+    function test_EvaluateGoal_PositiveCase()
         public
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
@@ -87,6 +133,27 @@ contract CounterTest is Test {
         evaluateGoal(EVALUATOR_ONE, 0, true)
     {
         assertEq(uint8(s_cNft.getCovenant(0).status), 1);
+    }
+
+    function test_EvaluateGoal_NegativeCase()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+        approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        evaluateGoal(EVALUATOR_ONE, 0, false)
+    {
+        assertEq(uint8(s_cNft.getCovenant(0).status), 2);
     }
 
     modifier registerAgent(address agent, string memory tee) {
