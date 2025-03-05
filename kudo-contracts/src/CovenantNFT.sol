@@ -26,12 +26,8 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         FAILED
     }
 
-    uint256 s_minApproval;
-
     /// @notice Covenant NFT id counter
     uint256 s_nftId;
-
-    uint256 s_evaluationId;
 
     /// @notice Holds every agents id
     EnumerableSet.AddressSet s_agents;
@@ -47,14 +43,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
     /// @notice Stores settlement data for a given Covenant NFT ID
     mapping(uint256 cNftId => string settlementData) public s_nftSettlementData;
-
-    // mapping(address evaluator => bool status) public s_evaluatorToVoteStatus;
-
-    mapping(uint256 nftId => mapping(address => bool)) public s_nftIdToEvaluatorVoteStatus;
-
-    // mapping(uint256 s_evaluationId => EvaluationDetail evaluationDetail) public s_evaluationDetails;
-
-    mapping(address evaluator => bool status) public s_whitelistedEvaluator;
 
     /// @notice Emitted when new agent is registered
     /// @param agentWallet Agent registered wallet address
@@ -88,8 +76,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Thrown when a required condition is not met
     error ConditionIsNotMet();
 
-    error TaskHasBeenEvaluated();
-
     /// @notice Covenant NFT details
     struct CovenantData {
         /// @notice Agent wallet address
@@ -112,7 +98,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 minAbilityScore;
         /// @notice The ability score
         uint128 abilityScore;
-        uint256[] evaluationIds;
         /// @notice Status of covenant's agent watch status
         bool shouldWatch;
         /// @notice Arbitrary data that can be stored alongside the NFT
@@ -168,8 +153,14 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     constructor(address admin, uint48 initialDelay)
         ERC721("Covenant NFT", "cNFT")
         AccessControlDefaultAdminRules(initialDelay, admin)
-    {
-        _grantRole(EVALUATOR_ROLE, address(this));
+    {}
+
+    function addEvaluatorContract(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _grantRole(EVALUATOR_ROLE, evaluator);
+    }
+
+    function removeEvaluatorContract(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _revokeRole(EVALUATOR_ROLE, evaluator);
     }
 
     /// @notice Allows an agent to register themselves
@@ -246,18 +237,29 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         emit SettlementDataSet(nftId, data);
     }
 
-    function whitelistEvaluator(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        s_whitelistedEvaluator[evaluator] = true;
+    function updateEvaluationDetail(uint256 nftId, EvaluationDetail memory evaluation)
+        external
+        onlyRole(EVALUATOR_ROLE)
+    {
+        ++s_nftIdToCovenantData[nftId].voteDetails.voteAmt;
+        s_nftIdToCovenantData[nftId].evaluationsDetail.push(evaluation);
     }
 
-    function removeEvaluator(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        s_whitelistedEvaluator[evaluator] = false;
+    function updateEvaluationDetail(uint256 nftId, EvaluationDetail[] calldata evaluations, uint8 approvalAmt)
+        external
+        onlyRole(EVALUATOR_ROLE)
+    {
+        for (uint256 i; i < evaluations.length; ++i) {
+            s_nftIdToCovenantData[nftId].evaluationsDetail[i] = evaluations[i];
+        }
+
+        s_nftIdToCovenantData[nftId].voteDetails.approvalAmt = approvalAmt;
     }
 
     /// @notice Updates the status of Covenant NFT
     /// @param nftId The ID of the Covenant NFT
     /// @param status The new status of the covenant
-    function setCovenantStatus(uint256 nftId, CovenantStatus status) public activeEvaluator(msg.sender) {
+    function setCovenantStatus(uint256 nftId, CovenantStatus status) public onlyRole(EVALUATOR_ROLE) {
         s_nftIdToCovenantData[nftId].status = status;
 
         if (status == CovenantStatus.COMPLETED) {
@@ -278,47 +280,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         }
 
         emit CovenantStatusSet(nftId, status);
-    }
-
-    function evaluate(uint256 nftId, bytes32 answer) external activeEvaluator(msg.sender) {
-        if (s_nftIdToEvaluatorVoteStatus[nftId][msg.sender]) revert TaskHasBeenEvaluated();
-
-        s_nftIdToEvaluatorVoteStatus[nftId][msg.sender] = true;
-
-        s_nftIdToCovenantData[nftId].voteDetails.voteAmt++;
-
-        s_nftIdToCovenantData[nftId].evaluationsDetail.push(
-            EvaluationDetail({evaluator: msg.sender, rawAnswer: answer, answer: false})
-        );
-
-        if (s_nftIdToCovenantData[nftId].voteDetails.voteAmt >= s_minApproval) {
-            _extractAnswer(nftId);
-        }
-    }
-
-    function _extractAnswer(uint256 nftId) internal {
-        for (uint256 i; i < s_nftIdToCovenantData[nftId].evaluationsDetail.length; ++i) {
-            if (
-                s_nftIdToCovenantData[nftId].evaluationsDetail[i].rawAnswer
-                    == createCommitment(s_nftIdToCovenantData[nftId].evaluationsDetail[i].evaluator, true)
-            ) {
-                s_nftIdToCovenantData[nftId].evaluationsDetail[i].answer = true;
-                s_nftIdToCovenantData[nftId].voteDetails.approvalAmt++;
-            } else {
-                s_nftIdToCovenantData[nftId].evaluationsDetail[i].answer = false;
-            }
-        }
-
-        if (s_nftIdToCovenantData[nftId].voteDetails.approvalAmt > s_nftIdToCovenantData[nftId].voteDetails.voteAmt / 2)
-        {
-            setCovenantStatus(nftId, CovenantStatus.COMPLETED);
-        } else {
-            setCovenantStatus(nftId, CovenantStatus.FAILED);
-        }
-    }
-
-    function createCommitment(address sender, bool answer) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(sender, answer));
     }
 
     function _handleCovenantRegistration(
@@ -468,10 +429,5 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     {
         return interfaceId == type(IAccessControlDefaultAdminRules).interfaceId
             || interfaceId == type(IERC721).interfaceId || interfaceId == type(IERC721Metadata).interfaceId;
-    }
-
-    modifier activeEvaluator(address evaluator) {
-        if (!s_whitelistedEvaluator[evaluator]) revert CallerIsNotAuthorized();
-        _;
     }
 }
