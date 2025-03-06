@@ -83,7 +83,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         /// @notice The current status of the covenant
         CovenantStatus status;
         EvaluationDetail[] evaluationsDetail;
-        VoteDetails voteDetails;
         /// @notice The description of the goal
         string goal;
         string goalDetail;
@@ -125,11 +124,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         address settlementAsset;
         /// @notice The promised asset amount at settlement
         uint128 settlementAmount;
-    }
-
-    struct VoteDetails {
-        uint8 voteAmt;
-        uint8 approvalAmt;
     }
 
     struct EvaluationDetail {
@@ -241,19 +235,16 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         external
         onlyRole(EVALUATOR_ROLE)
     {
-        ++s_nftIdToCovenantData[nftId].voteDetails.voteAmt;
         s_nftIdToCovenantData[nftId].evaluationsDetail.push(evaluation);
     }
 
-    function updateEvaluationDetail(uint256 nftId, EvaluationDetail[] calldata evaluations, uint8 approvalAmt)
+    function updateEvaluationDetail(uint256 nftId, EvaluationDetail[] calldata evaluations)
         external
         onlyRole(EVALUATOR_ROLE)
     {
         for (uint256 i; i < evaluations.length; ++i) {
             s_nftIdToCovenantData[nftId].evaluationsDetail[i] = evaluations[i];
         }
-
-        s_nftIdToCovenantData[nftId].voteDetails.approvalAmt = approvalAmt;
     }
 
     /// @notice Updates the status of Covenant NFT

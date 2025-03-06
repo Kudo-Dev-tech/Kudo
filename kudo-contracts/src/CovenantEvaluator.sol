@@ -38,15 +38,17 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
 
         CovenantNFT.CovenantData memory nft = i_cNFT.getCovenant(nftId);
 
+        uint256 voteAmt = nft.evaluationsDetail.length;
+
         s_nftIdToEvaluatorVoteStatus[nftId][msg.sender] = true;
 
         i_cNFT.updateEvaluationDetail(
             nftId, CovenantNFT.EvaluationDetail({evaluator: msg.sender, rawAnswer: answer, answer: false})
         );
 
-        nft.voteDetails.voteAmt++;
+        ++voteAmt;
 
-        if (nft.voteDetails.voteAmt >= s_minApproval) {
+        if (voteAmt >= s_minApproval) {
             _extractAnswer(nftId);
         }
     }
@@ -54,18 +56,21 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
     function _extractAnswer(uint256 nftId) internal {
         CovenantNFT.CovenantData memory nft = i_cNFT.getCovenant(nftId);
 
+        uint256 approvalAmt;
+        uint256 voteAmt = nft.evaluationsDetail.length;
+
         for (uint256 i; i < nft.evaluationsDetail.length; ++i) {
             if (nft.evaluationsDetail[i].rawAnswer == _createCommitment(nft.evaluationsDetail[i].evaluator, true)) {
                 nft.evaluationsDetail[i].answer = true;
-                nft.voteDetails.approvalAmt++;
+                approvalAmt++;
             } else {
                 nft.evaluationsDetail[i].answer = false;
             }
         }
 
-        i_cNFT.updateEvaluationDetail(nftId, nft.evaluationsDetail, nft.voteDetails.approvalAmt);
+        i_cNFT.updateEvaluationDetail(nftId, nft.evaluationsDetail);
 
-        if (nft.voteDetails.approvalAmt > nft.voteDetails.voteAmt / 2) {
+        if (approvalAmt > voteAmt / 2) {
             i_cNFT.setCovenantStatus(nftId, CovenantNFT.CovenantStatus.COMPLETED);
         } else {
             i_cNFT.setCovenantStatus(nftId, CovenantNFT.CovenantStatus.FAILED);
