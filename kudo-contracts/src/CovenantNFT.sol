@@ -149,14 +149,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         AccessControlDefaultAdminRules(initialDelay, admin)
     {}
 
-    function addEvaluatorContract(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _grantRole(EVALUATOR_ROLE, evaluator);
-    }
-
-    function removeEvaluatorContract(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        _revokeRole(EVALUATOR_ROLE, evaluator);
-    }
-
     /// @notice Allows an agent to register themselves
     /// @param teeId TEE identifier of the agent
     /// @param agentId Unique identifier for the agent

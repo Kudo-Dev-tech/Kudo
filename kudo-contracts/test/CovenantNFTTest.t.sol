@@ -22,6 +22,8 @@ contract CounterTest is Test {
     uint128 constant SETTLEMENT_TARGET = 10 ether;
     uint128 constant PRICE = 1_000_000;
 
+    uint256 constant MIN_APPROVAL = 1;
+
     bool constant SHOULD_WATCH = true;
 
     address constant STRANGER = address(10000);
@@ -50,10 +52,10 @@ contract CounterTest is Test {
 
         s_cNft = new CovenantNFTKudoNode(address(s_router), OWNER, INITIAL_DELAY);
 
-        s_evaluator = new CovenantEvaluator(address(s_cNft), OWNER, INITIAL_DELAY);
+        s_evaluator = new CovenantEvaluator(address(s_cNft), MIN_APPROVAL, OWNER, INITIAL_DELAY);
 
         vm.prank(OWNER);
-        s_cNft.addEvaluatorContract(address(s_evaluator));
+        s_cNft.grantRole(EVALUATOR_ROLE, address(s_evaluator));
 
         s_tee = "TEE 101";
         s_agentId = "Agent ID";
@@ -63,18 +65,6 @@ contract CounterTest is Test {
         s_testToken = new ERC20Mock();
 
         deal(address(s_testToken), AGENT_WALLET_ONE, 100000 ether);
-    }
-
-    function test_addEvaluatorContract() public {
-        vm.prank(OWNER);
-        s_cNft.addEvaluatorContract(STRANGER);
-        assertEq(s_cNft.hasRole(EVALUATOR_ROLE, STRANGER), true);
-    }
-
-    function test_removeEvaluatorContract() public {
-        vm.prank(OWNER);
-        s_cNft.removeEvaluatorContract(address(s_evaluator));
-        assertEq(s_cNft.hasRole(EVALUATOR_ROLE, address(s_evaluator)), false);
     }
 
     function test_WhitelistEvaluator() public whitelistEvaluator(EVALUATOR_ONE) {

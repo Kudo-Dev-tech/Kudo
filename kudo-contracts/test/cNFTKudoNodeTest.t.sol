@@ -47,7 +47,7 @@ contract cNFTKudoNodeTest is Test {
         s_cNft = new CovenantNFTKudoNode(address(s_router), OWNER, INITIAL_DELAY);
 
         vm.prank(OWNER);
-        s_cNft.addEvaluatorContract(EVALUATOR_CONTRACT);
+        s_cNft.grantRole(EVALUATOR_ROLE, EVALUATOR_CONTRACT);
 
         s_tee = "TEE 101";
         s_agentId = "Agent ID";

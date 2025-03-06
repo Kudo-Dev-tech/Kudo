@@ -21,8 +21,11 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
 
     error TaskHasBeenEvaluated();
 
-    constructor(address cNFT, address admin, uint48 initialDelay) AccessControlDefaultAdminRules(initialDelay, admin) {
+    constructor(address cNFT, uint256 minApproval, address admin, uint48 initialDelay)
+        AccessControlDefaultAdminRules(initialDelay, admin)
+    {
         i_cNFT = CovenantNFT(cNFT);
+        s_minApproval = minApproval;
     }
 
     function whitelistEvaluator(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -30,7 +33,7 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
     }
 
     function removeEvaluator(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        s_whitelistedEvaluator[evaluator] = false;
+        delete s_whitelistedEvaluator[evaluator];
     }
 
     function evaluate(uint256 nftId, bytes32 answer) external activeEvaluator(msg.sender) {
@@ -48,7 +51,7 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
 
         ++voteAmt;
 
-        if (voteAmt >= s_minApproval) {
+        if (voteAmt == s_minApproval) {
             _extractAnswer(nftId);
         }
     }
