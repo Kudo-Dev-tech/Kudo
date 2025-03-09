@@ -12,7 +12,7 @@ import {
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
-    bytes32 public constant EVALUATOR_ROLE = keccak256("EVALUATOR_ROLE");
+    bytes32 public constant EVALUATOR_CONTRACT_ROLE = keccak256("EVALUATOR_CONTRACT_ROLE");
 
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -82,7 +82,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         address agentWallet;
         /// @notice The current status of the covenant
         CovenantStatus status;
-        EvaluationDetail[] evaluationsDetail;
         /// @notice The description of the goal
         string goal;
         string goalDetail;
@@ -99,6 +98,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 abilityScore;
         /// @notice Status of covenant's agent watch status
         bool shouldWatch;
+        bool isEscrowed;
         /// @notice Arbitrary data that can be stored alongside the NFT
         bytes data;
     }
@@ -124,12 +124,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         address settlementAsset;
         /// @notice The promised asset amount at settlement
         uint128 settlementAmount;
-    }
-
-    struct EvaluationDetail {
-        address evaluator;
-        bytes32 rawAnswer;
-        bool answer;
     }
 
     /// @notice Agent's management detail
@@ -191,10 +185,11 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 minAbilityScore,
         uint128 price,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) public virtual returns (bytes32);
 
-    /// @notice Registers as a subgoal for another Covenant NGT
+    /// @notice Registers as a subgoal for another Covenant NFT
     /// @param task Description of the covenant goal
     /// @param parentCovenantId The ID of the parent covenant
     /// @param settlementAsset The asset used for settlement
@@ -207,6 +202,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         address settlementAsset,
         uint128 settlementAmount,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) public virtual returns (bytes32);
 
@@ -223,26 +219,10 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         emit SettlementDataSet(nftId, data);
     }
 
-    function updateEvaluationDetail(uint256 nftId, EvaluationDetail memory evaluation)
-        external
-        onlyRole(EVALUATOR_ROLE)
-    {
-        s_nftIdToCovenantData[nftId].evaluationsDetail.push(evaluation);
-    }
-
-    function updateEvaluationDetail(uint256 nftId, EvaluationDetail[] calldata evaluations)
-        external
-        onlyRole(EVALUATOR_ROLE)
-    {
-        for (uint256 i; i < evaluations.length; ++i) {
-            s_nftIdToCovenantData[nftId].evaluationsDetail[i] = evaluations[i];
-        }
-    }
-
     /// @notice Updates the status of Covenant NFT
     /// @param nftId The ID of the Covenant NFT
     /// @param status The new status of the covenant
-    function setCovenantStatus(uint256 nftId, CovenantStatus status) public onlyRole(EVALUATOR_ROLE) {
+    function setCovenantStatus(uint256 nftId, CovenantStatus status) public onlyRole(EVALUATOR_CONTRACT_ROLE) {
         s_nftIdToCovenantData[nftId].status = status;
 
         if (status == CovenantStatus.COMPLETED) {
@@ -254,10 +234,16 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
             address agentWallet = s_nftIdToCovenantData[nftId].agentWallet;
 
-            //slither-disable-next-line arbitrary-send-erc20
-            IERC20(s_nftIdToCovenantData[nftId].settlementDetail.settlementAsset).safeTransferFrom(
-                agentWallet, ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementDetail.settlementAmount
-            );
+            if (s_nftIdToCovenantData[nftId].isEscrowed) {
+                IERC20(s_nftIdToCovenantData[nftId].settlementDetail.settlementAsset).safeTransfer(
+                    ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementDetail.settlementAmount
+                );
+            } else {
+                //slither-disable-next-line arbitrary-send-erc20
+                IERC20(s_nftIdToCovenantData[nftId].settlementDetail.settlementAsset).safeTransferFrom(
+                    agentWallet, ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementDetail.settlementAmount
+                );
+            }
 
             _burn(nftId);
         }
@@ -273,6 +259,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 minAbilityScore,
         uint128 price,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) internal returns (bytes32) {
         s_requestIdToNftId[requestId] = s_nftId;
@@ -286,6 +273,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         s_nftIdToCovenantData[s_nftId].minAbilityScore = minAbilityScore;
         s_nftIdToCovenantData[s_nftId].status = CovenantStatus.IN_PROGRESS;
         s_nftIdToCovenantData[s_nftId].shouldWatch = shouldWatch;
+        s_nftIdToCovenantData[s_nftId].isEscrowed = isEscrowed;
         s_nftIdToCovenantData[s_nftId].price = uint128(price);
 
         s_agentDetails[msg.sender].taskId.push(s_nftId);
@@ -306,6 +294,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         address settlementAsset,
         uint128 settlementAmount,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) internal returns (bytes32) {
         s_requestIdToNftId[requestId] = s_nftId;
@@ -318,6 +307,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         s_nftIdToCovenantData[s_nftId].settlementDetail.settlementAmount = settlementAmount;
         s_nftIdToCovenantData[s_nftId].data = data;
         s_nftIdToCovenantData[s_nftId].shouldWatch = shouldWatch;
+        s_nftIdToCovenantData[s_nftId].isEscrowed = isEscrowed;
 
         _mint(address(this), s_nftId);
 

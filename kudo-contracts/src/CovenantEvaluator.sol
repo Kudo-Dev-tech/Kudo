@@ -12,6 +12,8 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
 
     CovenantNFT immutable i_cNFT;
 
+    mapping(uint256 nftId => CovenantEvaluations covenantEvalutions) s_nftIdToCovenantEvaluations;
+
     mapping(uint256 nftId => mapping(address => bool)) public s_nftIdToEvaluatorVoteStatus;
 
     mapping(address evaluator => bool status) public s_whitelistedEvaluator;
@@ -20,6 +22,17 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
     error CallerIsNotAuthorized();
 
     error TaskHasBeenEvaluated();
+
+    struct CovenantEvaluations {
+        uint256 voteAmt;
+        EvaluationDetail[] evaluationsDetail;
+    }
+
+    struct EvaluationDetail {
+        address evaluator;
+        bytes32 rawAnswer;
+        bool answer;
+    }
 
     constructor(address cNFT, uint256 minApproval, address admin, uint48 initialDelay)
         AccessControlDefaultAdminRules(initialDelay, admin)
@@ -39,41 +52,35 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
     function evaluate(uint256 nftId, bytes32 answer) external activeEvaluator(msg.sender) {
         if (s_nftIdToEvaluatorVoteStatus[nftId][msg.sender]) revert TaskHasBeenEvaluated();
 
-        CovenantNFT.CovenantData memory nft = i_cNFT.getCovenant(nftId);
-
-        uint256 voteAmt = nft.evaluationsDetail.length;
-
         s_nftIdToEvaluatorVoteStatus[nftId][msg.sender] = true;
 
-        i_cNFT.updateEvaluationDetail(
-            nftId, CovenantNFT.EvaluationDetail({evaluator: msg.sender, rawAnswer: answer, answer: false})
+        s_nftIdToCovenantEvaluations[nftId].voteAmt++;
+
+        s_nftIdToCovenantEvaluations[nftId].evaluationsDetail.push(
+            EvaluationDetail({evaluator: msg.sender, rawAnswer: answer, answer: false})
         );
 
-        ++voteAmt;
-
-        if (voteAmt == s_minApproval) {
+        if (s_nftIdToCovenantEvaluations[nftId].voteAmt == s_minApproval) {
             _extractAnswer(nftId);
         }
     }
 
     function _extractAnswer(uint256 nftId) internal {
-        CovenantNFT.CovenantData memory nft = i_cNFT.getCovenant(nftId);
-
         uint256 approvalAmt;
-        uint256 voteAmt = nft.evaluationsDetail.length;
 
-        for (uint256 i; i < nft.evaluationsDetail.length; ++i) {
-            if (nft.evaluationsDetail[i].rawAnswer == _createCommitment(nft.evaluationsDetail[i].evaluator, true)) {
-                nft.evaluationsDetail[i].answer = true;
+        for (uint256 i; i < s_nftIdToCovenantEvaluations[nftId].evaluationsDetail.length; ++i) {
+            if (
+                s_nftIdToCovenantEvaluations[nftId].evaluationsDetail[i].rawAnswer
+                    == _createCommitment(s_nftIdToCovenantEvaluations[nftId].evaluationsDetail[i].evaluator, true)
+            ) {
+                s_nftIdToCovenantEvaluations[nftId].evaluationsDetail[i].answer = true;
                 approvalAmt++;
             } else {
-                nft.evaluationsDetail[i].answer = false;
+                s_nftIdToCovenantEvaluations[nftId].evaluationsDetail[i].answer = false;
             }
         }
 
-        i_cNFT.updateEvaluationDetail(nftId, nft.evaluationsDetail);
-
-        if (approvalAmt > voteAmt / 2) {
+        if (approvalAmt > s_nftIdToCovenantEvaluations[nftId].voteAmt / 2) {
             i_cNFT.setCovenantStatus(nftId, CovenantNFT.CovenantStatus.COMPLETED);
         } else {
             i_cNFT.setCovenantStatus(nftId, CovenantNFT.CovenantStatus.FAILED);
