@@ -48,6 +48,7 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         uint128 minAbilityScore,
         uint128 price,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) public override returns (bytes32) {
         string[] memory input = new string[](2);
@@ -58,7 +59,7 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         bytes32 requestId = sendRequest(s_subsId, input);
 
         return _handleCovenantRegistration(
-            requestId, task, settlementAsset, settlementAmount, minAbilityScore, price, shouldWatch, data
+            requestId, task, settlementAsset, settlementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
         );
     }
 
@@ -69,6 +70,7 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         address settlementAsset,
         uint128 settlementAmount,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) public override returns (bytes32) {
         string[] memory input = new string[](2);
@@ -79,7 +81,7 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         bytes32 requestId = sendRequest(s_subsId, input);
 
         return _handleSubgoalCovenantRegistration(
-            requestId, task, parentCovenantId, settlementAsset, settlementAmount, shouldWatch, data
+            requestId, task, parentCovenantId, settlementAsset, settlementAmount, shouldWatch, isEscrowed, data
         );
     }
 
