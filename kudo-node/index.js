@@ -1,9 +1,11 @@
 require("dotenv").config();
 const { ethers } = require("ethers");
 const axios = require("axios"); // For making API calls
+const WebSocket = require("ws");
 
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
-const provider = new ethers.WebSocketProvider(process.env.RPC_URL);
+const ws = new WebSocket(process.env.RPC_URL);
+const provider = new ethers.WebSocketProvider(ws);
 
 const contractAddress = process.env.CONTRACT_ADDRESS;
 const wallet = new ethers.Wallet(
@@ -65,6 +67,22 @@ event.on(filter, async (log) => {
   }
 });
 
+// WebSocket event handlers
+ws.on("open", () => {
+  console.log("WebSocket connected. Listening for events...");
+  reconnectAttempts = 0; // Reset reconnect attempts on successful connection
+});
+
+ws.on("error", (error) => {
+  console.error("WebSocket error:", error);
+  reconnectWebSocket();
+});
+
+ws.on("close", (code, reason) => {
+  console.log(`WebSocket closed: ${code} - ${reason}`);
+  reconnectWebSocket();
+});
+
 setInterval(async () => {
   try {
     await provider.getBlockNumber(); // Simple request to keep the WebSocket alive
@@ -95,3 +113,28 @@ const retry = async (action, maxRetries = process.env.MAX_RETRIES) => {
 
   throw new Error("Failed");
 };
+
+let reconnectAttempts = 0;
+
+function reconnectWebSocket() {
+  if (reconnectAttempts >= process.env.MAX_RETRIES) {
+    console.error("Max reconnect attempts reached. Exiting...");
+    process.exit(1);
+  }
+
+  if (provider) {
+    provider.destroy(); // Clean up old provider
+    provider = null;
+  }
+
+  reconnectAttempts++;
+  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Exponential backoff, max 30s
+  console.log(`Reconnecting in ${delay / 1000} seconds...`);
+
+  setTimeout(() => {
+    console.log(
+      `Reconnect attempt ${reconnectAttempts}/${process.env.MAX_RETRIES}`
+    );
+    setupWebSocket();
+  }, delay);
+}
