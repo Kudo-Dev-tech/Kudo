@@ -298,6 +298,8 @@ contract CounterTest is Test {
             1 ether
         )
     {
+        vm.expectEmit(true, true, true, true, address(s_cNft));
+        emit CovenantNFT.SettlementDataSet(1);
         vm.startPrank(AGENT_WALLET_TWO);
         s_cNft.setSettlementData(1, "THIS IS THE SETTLEMENT DATA");
 
@@ -431,6 +433,40 @@ contract CounterTest is Test {
 
         assertEq(teeId, s_tee);
         assertEq(taskId[0], 0);
+    }
+
+    function test_GetCovenantDetails()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            CovenantNFT.NftType.LOAN,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            bytes(""),
+            1 ether
+        )
+    {
+        string memory settlementData = "THIS IS THE SETTLEMENT DATA";
+        vm.prank(AGENT_WALLET_ONE);
+        s_cNft.setSettlementData(0, settlementData);
+
+        CovenantNFT.CovenantDetails memory data = s_cNft.getCovenantDetails(0);
+
+        assertEq(data.nftId, 0);
+        assertEq(uint256(data.covenantData.nftType), 1);
+        assertEq(data.covenantData.agentWallet, AGENT_WALLET_ONE);
+        assertEq(data.covenantData.goal, s_goal);
+        assertEq(data.covenantData.data, bytes(""));
+        assertEq(data.covenantData.shouldWatch, SHOULD_WATCH);
+        assertEq(data.covenantData.settlementAsset, address(s_testToken));
+        assertEq(data.covenantData.settlementAmount, SETTLEMENT_TARGET);
+        assertEq(data.settlementData, settlementData);
+        assertEq(uint256(data.covenantData.status), 0);
     }
 
     function test_GetCovenantsDetails()
