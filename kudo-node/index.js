@@ -114,27 +114,22 @@ const retry = async (action, maxRetries = process.env.MAX_RETRIES) => {
   throw new Error("Failed");
 };
 
-let reconnectAttempts = 0;
+async function reconnectWebSocket() {
+  let reconnectAttempts = 0;
 
-function reconnectWebSocket() {
-  if (reconnectAttempts >= process.env.MAX_RETRIES) {
-    console.error("Max reconnect attempts reached. Exiting...");
-    process.exit(1);
-  }
+  do {
+    reconnectAttempts++;
 
-  if (provider) {
-    provider.destroy(); // Clean up old provider
-    provider = null;
-  }
+    if (provider) {
+      provider.destroy(); // Clean up old provider
+      provider = null;
+    }
 
-  reconnectAttempts++;
-  const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000); // Exponential backoff, max 30s
-  console.log(`Reconnecting in ${delay / 1000} seconds...`);
-
-  setTimeout(() => {
-    console.log(
-      `Reconnect attempt ${reconnectAttempts}/${process.env.MAX_RETRIES}`
-    );
     setupWebSocket();
-  }, delay);
+
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  } while (reconnectAttempts < process.env.MAX_RETRIES);
+
+  console.error("Max reconnect attempts reached. Exiting...");
+  process.exit(1);
 }
