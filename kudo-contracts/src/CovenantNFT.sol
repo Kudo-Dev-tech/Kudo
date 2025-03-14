@@ -68,7 +68,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     event CovenantStatusSet(uint256 indexed nftId, CovenantStatus status);
 
     /// @notice Thrown when the caller is not an authorized agent
-    error CallerIsNotAuthorized();
+    error AccessForbidden();
 
     /// @notice Thrown when an agent is already registered
     error AgentRegistered();
@@ -211,7 +211,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param data Settlement data
     function setSettlementData(uint256 nftId, string calldata data) public {
         if (s_nftIdToCovenantData[nftId].agentWallet != msg.sender) {
-            revert CallerIsNotAuthorized();
+            revert AccessForbidden();
         }
 
         s_nftSettlementData[nftId] = data;

@@ -8,7 +8,7 @@ import {
 } from "openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 
 contract CovenantEvaluator is AccessControlDefaultAdminRules {
-    uint256 s_minApproval;
+    uint256 private s_minApproval;
 
     CovenantNFT immutable i_cNFT;
 
@@ -18,20 +18,25 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
 
     mapping(address evaluator => bool status) public s_whitelistedEvaluator;
 
-    /// @notice Thrown when the caller is not an authorized agent
-    error CallerIsNotAuthorized();
+    /// @notice Emitted when evaluator is whitelisted
+    /// @param evaluator address of the whitelisted evaluator
+    event EvaluatorWhitelisted(address evaluator);
 
+    /// @notice Thrown when the caller is not an authorized agent
+    error AccessForbidden();
+
+    /// @notice Thrown when task has already been evaluated
     error TaskHasBeenEvaluated();
 
     struct CovenantEvaluations {
-        uint256 voteAmt;
+        uint128 voteAmt;
         EvaluationDetail[] evaluationsDetail;
     }
 
     struct EvaluationDetail {
         address evaluator;
-        bytes32 rawAnswer;
         bool answer;
+        bytes32 rawAnswer;
     }
 
     constructor(address cNFT, uint256 minApproval, address admin, uint48 initialDelay)
@@ -43,6 +48,8 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
 
     function whitelistEvaluator(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
         s_whitelistedEvaluator[evaluator] = true;
+
+        emit EvaluatorWhitelisted(evaluator);
     }
 
     function removeEvaluator(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -92,7 +99,7 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
     }
 
     modifier activeEvaluator(address evaluator) {
-        if (!s_whitelistedEvaluator[evaluator]) revert CallerIsNotAuthorized();
+        if (!s_whitelistedEvaluator[evaluator]) revert AccessForbidden();
         _;
     }
 }
