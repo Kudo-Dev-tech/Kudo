@@ -303,7 +303,7 @@ contract CounterTest is Test {
         vm.startPrank(AGENT_WALLET_TWO);
         s_cNft.setSettlementData(1, "THIS IS THE SETTLEMENT DATA");
 
-        assertEq("THIS IS THE SETTLEMENT DATA", s_cNft.s_nftSettlementData(1));
+        assertEq("THIS IS THE SETTLEMENT DATA", s_cNft.getCovenantDetails(1).settlementData);
     }
 
     function test_UpdateCovenantStatusWithSubgoals()

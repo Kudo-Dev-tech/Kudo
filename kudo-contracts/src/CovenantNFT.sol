@@ -44,7 +44,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     mapping(bytes32 requestId => uint256 nftId) public s_requestIdToNftId;
 
     /// @notice Stores settlement data for a given Covenant NFT ID
-    mapping(uint256 cNftId => string settlemenData) public s_nftSettlementData;
+    mapping(uint256 cNftId => string settlemenData) private s_nftSettlementData;
 
     /// @notice Emitted when new agent is registered
     /// @param agentWallet Agent registered wallet address
