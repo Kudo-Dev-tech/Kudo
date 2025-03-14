@@ -222,7 +222,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Updates the status of Covenant NFT
     /// @param nftId The ID of the Covenant NFT
     /// @param status The new status of the covenant
-    function setCovenantStatus(uint256 nftId, CovenantStatus status) public onlyRole(EVALUATOR_CONTRACT_ROLE) {
+    function setCovenantStatus(uint256 nftId, CovenantStatus status) external onlyRole(EVALUATOR_CONTRACT_ROLE) {
         s_nftIdToCovenantData[nftId].status = status;
 
         if (status == CovenantStatus.COMPLETED) {
