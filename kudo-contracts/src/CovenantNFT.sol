@@ -31,8 +31,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Covenant NFT id counter
     uint256 s_nftId;
 
-    uint256 s_evaluationId;
-
     /// @notice Holds every agents id
     EnumerableSet.AddressSet s_agents;
 
@@ -48,11 +46,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Stores settlement data for a given Covenant NFT ID
     mapping(uint256 cNftId => string settlementData) public s_nftSettlementData;
 
-    // mapping(address evaluator => bool status) public s_evaluatorToVoteStatus;
-
     mapping(uint256 nftId => mapping(address => bool)) public s_nftIdToEvaluatorVoteStatus;
-
-    // mapping(uint256 s_evaluationId => EvaluationDetail evaluationDetail) public s_evaluationDetails;
 
     mapping(address evaluator => bool status) public s_whitelistedEvaluator;
 
@@ -80,7 +74,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     event CovenantStatusSet(uint256 indexed nftId, CovenantStatus status);
 
     /// @notice Thrown when the caller is not an authorized agent
-    error CallerIsNotAuthorized();
+    error AccessForbidden();
 
     /// @notice Thrown when an agent is already registered
     error AgentRegistered();
@@ -238,7 +232,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param data Settlement data
     function setSettlementData(uint256 nftId, string calldata data) public {
         if (s_nftIdToCovenantData[nftId].agentWallet != msg.sender) {
-            revert CallerIsNotAuthorized();
+            revert AccessForbidden();
         }
 
         s_nftSettlementData[nftId] = data;
@@ -471,7 +465,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     }
 
     modifier activeEvaluator(address evaluator) {
-        if (!s_whitelistedEvaluator[evaluator]) revert CallerIsNotAuthorized();
+        if (!s_whitelistedEvaluator[evaluator]) revert AccessForbidden();
         _;
     }
 }

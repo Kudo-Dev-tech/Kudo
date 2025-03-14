@@ -143,7 +143,7 @@ contract CounterTest is Test {
     {
         vm.startPrank(STRANGER);
 
-        vm.expectRevert(CovenantNFT.CallerIsNotAuthorized.selector);
+        vm.expectRevert(CovenantNFT.AccessForbidden.selector);
         s_cNft.setCovenantStatus(0, CovenantNFT.CovenantStatus.COMPLETED);
     }
 
@@ -232,7 +232,7 @@ contract CounterTest is Test {
     {
         vm.startPrank(AGENT_WALLET_ONE);
 
-        vm.expectRevert(CovenantNFT.CallerIsNotAuthorized.selector);
+        vm.expectRevert(CovenantNFT.AccessForbidden.selector);
         s_cNft.setSettlementData(1, "THIS IS THE SETTLEMENT DATA");
     }
 

@@ -84,7 +84,7 @@ contract CounterTest is Test {
         )
         whitelistEvaluator(EVALUATOR_ONE)
     {
-        vm.expectRevert(CovenantNFT.CallerIsNotAuthorized.selector);
+        vm.expectRevert(CovenantNFT.AccessForbidden.selector);
 
         vm.prank(STRANGER);
         s_cNft.evaluate(0, bytes32("true"));
