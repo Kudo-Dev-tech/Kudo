@@ -125,9 +125,11 @@ async function reconnectWebSocket() {
       provider = null;
     }
 
-    setupWebSocket();
+    provider = new ethers.WebSocketProvider(ws);
 
-    await new Promise((resolve) => setTimeout(resolve, delay));
+    await new Promise((resolve) =>
+      setTimeout(resolve, process.env.RETRY_DELAY)
+    );
   } while (reconnectAttempts < process.env.MAX_RETRIES);
 
   console.error("Max reconnect attempts reached. Exiting...");
