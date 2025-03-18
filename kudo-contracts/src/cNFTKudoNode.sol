@@ -12,13 +12,13 @@ contract CovenantNFTKudoNode is CovenantNFT {
 
     /// @inheritdoc CovenantNFT
     function registerCovenant(
-        NftType nftType,
         string calldata task,
         address settlementAsset,
         uint128 settlementAmount,
         uint128 minAbilityScore,
         uint128 price,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) public override returns (bytes32) {
         bytes32 requestId = keccak256(abi.encodePacked(msg.sender, s_nftId));
@@ -26,18 +26,18 @@ contract CovenantNFTKudoNode is CovenantNFT {
         s_requestIdToNftId[requestId] = s_nftId;
 
         return _handleCovenantRegistration(
-            requestId, nftType, task, settlementAsset, settlementAmount, minAbilityScore, price, shouldWatch, data
+            requestId, task, settlementAsset, settlementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
         );
     }
 
     /// @inheritdoc CovenantNFT
     function registerCovenant(
-        NftType nftType,
         string calldata task,
         uint128 parentCovenantId,
         address settlementAsset,
         uint128 settlementAmount,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) public override returns (bytes32) {
         bytes32 requestId = keccak256(abi.encodePacked(msg.sender, s_nftId));
@@ -45,7 +45,7 @@ contract CovenantNFTKudoNode is CovenantNFT {
         s_requestIdToNftId[requestId] = s_nftId;
 
         return _handleSubgoalCovenantRegistration(
-            requestId, nftType, task, parentCovenantId, settlementAsset, settlementAmount, shouldWatch, data
+            requestId, task, parentCovenantId, settlementAsset, settlementAmount, shouldWatch, isEscrowed, data
         );
     }
 
