@@ -31,10 +31,14 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
     /// @notice Chainlink functions subscription id
     uint64 s_subsId;
 
-    constructor(bytes32 donId, uint64 subsId, address router, address admin, uint48 initialDelay)
-        CovenantNFT(admin, initialDelay)
-        FunctionsClient(router)
-    {
+    constructor(
+        bytes32 donId,
+        uint64 subsId,
+        address router,
+        string[] memory nftTypeName,
+        address admin,
+        uint48 initialDelay
+    ) CovenantNFT(nftTypeName, admin, initialDelay) FunctionsClient(router) {
         s_router = router;
         i_donID = donId;
         s_subsId = subsId;

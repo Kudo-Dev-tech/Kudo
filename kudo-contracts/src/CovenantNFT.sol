@@ -29,6 +29,8 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Covenant NFT id counter
     uint256 s_nftId;
 
+    uint256 s_nftTypeCounter;
+
     /// @notice Holds every agents id
     EnumerableSet.AddressSet s_agents;
 
@@ -43,6 +45,8 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
     /// @notice Stores settlement data for a given Covenant NFT ID
     mapping(uint256 cNftId => string settlemenData) private s_nftSettlementData;
+
+    mapping(uint256 nftType => string nftTypeName) private s_nftTypeIdToNftTypeName;
 
     /// @notice Emitted when new agent is registered
     /// @param agentWallet Agent registered wallet address
@@ -137,10 +141,27 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint256[] taskId;
     }
 
-    constructor(address admin, uint48 initialDelay)
+    constructor(string[] memory nftTypeName, address admin, uint48 initialDelay)
         ERC721("Covenant NFT", "cNFT")
         AccessControlDefaultAdminRules(initialDelay, admin)
-    {}
+    {
+        _addNftType(nftTypeName);
+    }
+
+    function addNftType(string[] memory nftTypeName) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _addNftType(nftTypeName);
+    }
+
+    function _addNftType(string[] memory nftTypeName) internal {
+        for (uint256 i; i < nftTypeName.length; ++i) {
+            s_nftTypeIdToNftTypeName[s_nftTypeCounter] = nftTypeName[i];
+            ++s_nftTypeCounter;
+        }
+    }
+
+    function getNftTypeName(uint256 id) external view returns (string memory) {
+        return s_nftTypeIdToNftTypeName[id];
+    }
 
     /// @notice Allows an agent to register themselves
     /// @param teeId TEE identifier of the agent

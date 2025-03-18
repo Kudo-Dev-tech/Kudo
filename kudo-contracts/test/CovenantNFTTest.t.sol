@@ -50,7 +50,12 @@ contract CounterTest is Test {
     function setUp() public {
         s_router = new MockRouter();
 
-        s_cNft = new CovenantNFTKudoNode(address(s_router), OWNER, INITIAL_DELAY);
+        string[] memory nftTypeName = new string[](2);
+
+        nftTypeName[0] = "EMPLOYMENT";
+        nftTypeName[1] = "LOAN";
+
+        s_cNft = new CovenantNFTKudoNode(address(s_router), nftTypeName, OWNER, INITIAL_DELAY);
 
         s_evaluator = new CovenantEvaluator(address(s_cNft), MIN_APPROVAL, OWNER, INITIAL_DELAY);
 
@@ -65,6 +70,20 @@ contract CounterTest is Test {
         s_testToken = new ERC20Mock();
 
         deal(address(s_testToken), AGENT_WALLET_ONE, 100000 ether);
+    }
+
+    function test_AddNftType() public {
+        string[] memory nftTypeName = new string[](1);
+
+        nftTypeName[0] = "TESTING";
+
+        vm.prank(OWNER);
+        s_cNft.addNftType(nftTypeName);
+        assertEq(s_cNft.getNftTypeName(2), "TESTING");
+    }
+
+    function test_GetNftTypeName() public view {
+        assertEq(s_cNft.getNftTypeName(0), "EMPLOYMENT");
     }
 
     function test_WhitelistEvaluator() public whitelistEvaluator(EVALUATOR_ONE) {

@@ -44,7 +44,12 @@ contract cNFTKudoNodeTest is Test {
     function setUp() public {
         s_router = new MockRouter();
 
-        s_cNft = new CovenantNFTKudoNode(address(s_router), OWNER, INITIAL_DELAY);
+        string[] memory nftTypeName = new string[](2);
+
+        nftTypeName[0] = "EMPLOYMENT";
+        nftTypeName[1] = "LOAN";
+
+        s_cNft = new CovenantNFTKudoNode(address(s_router), nftTypeName, OWNER, INITIAL_DELAY);
 
         vm.prank(OWNER);
         s_cNft.grantRole(EVALUATOR_CONTRACT_ROLE, EVALUATOR_CONTRACT);

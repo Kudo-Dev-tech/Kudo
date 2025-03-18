@@ -6,7 +6,9 @@ import {CovenantNFT} from "./CovenantNFT.sol";
 contract CovenantNFTKudoNode is CovenantNFT {
     bytes32 constant ROUTER_ROLE = keccak256("ROUTER_ROLE");
 
-    constructor(address router, address admin, uint48 initialDelay) CovenantNFT(admin, initialDelay) {
+    constructor(address router, string[] memory nftTypeName, address admin, uint48 initialDelay)
+        CovenantNFT(nftTypeName, admin, initialDelay)
+    {
         _grantRole(ROUTER_ROLE, router);
     }
 
