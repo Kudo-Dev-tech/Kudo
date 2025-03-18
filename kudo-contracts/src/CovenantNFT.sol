@@ -42,7 +42,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     mapping(bytes32 requestId => uint256 nftId) public s_requestIdToNftId;
 
     /// @notice Stores settlement data for a given Covenant NFT ID
-    mapping(uint256 cNftId => string settlementData) public s_nftSettlementData;
+    mapping(uint256 cNftId => string settlemenData) private s_nftSettlementData;
 
     /// @notice Emitted when new agent is registered
     /// @param agentWallet Agent registered wallet address
@@ -59,8 +59,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
     /// @notice Emitted when settlement data is set for a Covenant NFT
     /// @param nftId The ID of the Covenant NFT
-    /// @param data The settlement data associated with the covenant
-    event SettlementDataSet(uint256 indexed nftId, string data);
+    event SettlementDataSet(uint256 indexed nftId);
 
     /// @notice Emitted when the status of a Covenant NFT is updated
     /// @param nftId The ID of the Covenant NFT
@@ -216,7 +215,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
         s_nftSettlementData[nftId] = data;
 
-        emit SettlementDataSet(nftId, data);
+        emit SettlementDataSet(nftId);
     }
 
     /// @notice Updates the status of Covenant NFT
@@ -366,6 +365,22 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         return data;
     }
 
+    /// @notice Retrieves desired covenants details
+    /// @param nftId The ID of the target NFT for retrieving covenant details
+    /// @return CovenantDetails Details of specific NFT
+    function getCovenantDetails(uint256 nftId) external view returns (CovenantDetails memory) {
+        CovenantDetails memory data = CovenantDetails({
+            nftId: nftId,
+            agentName: s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].agentName,
+            agentId: s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].agentId,
+            owner: _ownerOf(nftId),
+            settlementData: s_nftSettlementData[nftId],
+            covenantData: s_nftIdToCovenantData[nftId]
+        });
+
+        return data;
+    }
+
     /// @notice Retrieves all of the covenants details
     /// @return CovenantDetails[] Details of all covenant NFT
     function getCovenantsDetails() external view returns (CovenantDetails[] memory) {
@@ -375,6 +390,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
             address agentWallet = s_nftIdToCovenantData[i].agentWallet;
             data[i].nftId = i;
             data[i].agentName = s_agentDetails[agentWallet].agentName;
+            data[i].agentId = s_agentDetails[agentWallet].agentId;
             data[i].owner = _ownerOf(i);
             data[i].settlementData = s_nftSettlementData[i];
             data[i].covenantData = s_nftIdToCovenantData[i];
