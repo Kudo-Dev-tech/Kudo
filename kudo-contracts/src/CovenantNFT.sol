@@ -12,7 +12,7 @@ import {
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
-    bytes32 public constant EVALUATOR_ROLE = keccak256("EVALUATOR_ROLE");
+    bytes32 public constant EVALUATOR_CONTRACT_ROLE = keccak256("EVALUATOR_CONTRACT_ROLE");
 
     using SafeERC20 for IERC20;
     using EnumerableSet for EnumerableSet.AddressSet;
@@ -25,8 +25,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         COMPLETED,
         FAILED
     }
-
-    uint256 s_minApproval;
 
     /// @notice Covenant NFT id counter
     uint256 s_nftId;
@@ -45,10 +43,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
     /// @notice Stores settlement data for a given Covenant NFT ID
     mapping(uint256 cNftId => string settlementData) public s_nftSettlementData;
-
-    mapping(uint256 nftId => mapping(address => bool)) public s_nftIdToEvaluatorVoteStatus;
-
-    mapping(address evaluator => bool status) public s_whitelistedEvaluator;
 
     /// @notice Emitted when new agent is registered
     /// @param agentWallet Agent registered wallet address
@@ -82,16 +76,12 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Thrown when a required condition is not met
     error ConditionIsNotMet();
 
-    error TaskHasBeenEvaluated();
-
     /// @notice Covenant NFT details
     struct CovenantData {
         /// @notice Agent wallet address
         address agentWallet;
         /// @notice The current status of the covenant
         CovenantStatus status;
-        EvaluationDetail[] evaluationsDetail;
-        VoteDetails voteDetails;
         /// @notice The description of the goal
         string goal;
         string goalDetail;
@@ -106,9 +96,9 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 minAbilityScore;
         /// @notice The ability score
         uint128 abilityScore;
-        uint256[] evaluationIds;
         /// @notice Status of covenant's agent watch status
         bool shouldWatch;
+        bool isEscrowed;
         /// @notice Arbitrary data that can be stored alongside the NFT
         bytes data;
     }
@@ -136,17 +126,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 settlementAmount;
     }
 
-    struct VoteDetails {
-        uint8 voteAmt;
-        uint8 approvalAmt;
-    }
-
-    struct EvaluationDetail {
-        address evaluator;
-        bytes32 rawAnswer;
-        bool answer;
-    }
-
     /// @notice Agent's management detail
     struct AgentManagement {
         /// @notice The TEE ID the agent is running in
@@ -162,9 +141,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     constructor(address admin, uint48 initialDelay)
         ERC721("Covenant NFT", "cNFT")
         AccessControlDefaultAdminRules(initialDelay, admin)
-    {
-        _grantRole(EVALUATOR_ROLE, address(this));
-    }
+    {}
 
     /// @notice Allows an agent to register themselves
     /// @param teeId TEE identifier of the agent
@@ -208,10 +185,11 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 minAbilityScore,
         uint128 price,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) public virtual returns (bytes32);
 
-    /// @notice Registers as a subgoal for another Covenant NGT
+    /// @notice Registers as a subgoal for another Covenant NFT
     /// @param task Description of the covenant goal
     /// @param parentCovenantId The ID of the parent covenant
     /// @param settlementAsset The asset used for settlement
@@ -224,6 +202,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         address settlementAsset,
         uint128 settlementAmount,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) public virtual returns (bytes32);
 
@@ -240,18 +219,10 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         emit SettlementDataSet(nftId, data);
     }
 
-    function whitelistEvaluator(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        s_whitelistedEvaluator[evaluator] = true;
-    }
-
-    function removeEvaluator(address evaluator) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        s_whitelistedEvaluator[evaluator] = false;
-    }
-
     /// @notice Updates the status of Covenant NFT
     /// @param nftId The ID of the Covenant NFT
     /// @param status The new status of the covenant
-    function setCovenantStatus(uint256 nftId, CovenantStatus status) public activeEvaluator(msg.sender) {
+    function setCovenantStatus(uint256 nftId, CovenantStatus status) external onlyRole(EVALUATOR_CONTRACT_ROLE) {
         s_nftIdToCovenantData[nftId].status = status;
 
         if (status == CovenantStatus.COMPLETED) {
@@ -263,56 +234,21 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
             address agentWallet = s_nftIdToCovenantData[nftId].agentWallet;
 
-            //slither-disable-next-line arbitrary-send-erc20
-            IERC20(s_nftIdToCovenantData[nftId].settlementDetail.settlementAsset).safeTransferFrom(
-                agentWallet, ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementDetail.settlementAmount
-            );
+            if (s_nftIdToCovenantData[nftId].isEscrowed) {
+                IERC20(s_nftIdToCovenantData[nftId].settlementDetail.settlementAsset).safeTransfer(
+                    ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementDetail.settlementAmount
+                );
+            } else {
+                //slither-disable-next-line arbitrary-send-erc20
+                IERC20(s_nftIdToCovenantData[nftId].settlementDetail.settlementAsset).safeTransferFrom(
+                    agentWallet, ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementDetail.settlementAmount
+                );
+            }
 
             _burn(nftId);
         }
 
         emit CovenantStatusSet(nftId, status);
-    }
-
-    function evaluate(uint256 nftId, bytes32 answer) external activeEvaluator(msg.sender) {
-        if (s_nftIdToEvaluatorVoteStatus[nftId][msg.sender]) revert TaskHasBeenEvaluated();
-
-        s_nftIdToEvaluatorVoteStatus[nftId][msg.sender] = true;
-
-        s_nftIdToCovenantData[nftId].voteDetails.voteAmt++;
-
-        s_nftIdToCovenantData[nftId].evaluationsDetail.push(
-            EvaluationDetail({evaluator: msg.sender, rawAnswer: answer, answer: false})
-        );
-
-        if (s_nftIdToCovenantData[nftId].voteDetails.voteAmt >= s_minApproval) {
-            _extractAnswer(nftId);
-        }
-    }
-
-    function _extractAnswer(uint256 nftId) internal {
-        for (uint256 i; i < s_nftIdToCovenantData[nftId].evaluationsDetail.length; ++i) {
-            if (
-                s_nftIdToCovenantData[nftId].evaluationsDetail[i].rawAnswer
-                    == createCommitment(s_nftIdToCovenantData[nftId].evaluationsDetail[i].evaluator, true)
-            ) {
-                s_nftIdToCovenantData[nftId].evaluationsDetail[i].answer = true;
-                s_nftIdToCovenantData[nftId].voteDetails.approvalAmt++;
-            } else {
-                s_nftIdToCovenantData[nftId].evaluationsDetail[i].answer = false;
-            }
-        }
-
-        if (s_nftIdToCovenantData[nftId].voteDetails.approvalAmt > s_nftIdToCovenantData[nftId].voteDetails.voteAmt / 2)
-        {
-            setCovenantStatus(nftId, CovenantStatus.COMPLETED);
-        } else {
-            setCovenantStatus(nftId, CovenantStatus.FAILED);
-        }
-    }
-
-    function createCommitment(address sender, bool answer) internal pure returns (bytes32) {
-        return keccak256(abi.encodePacked(sender, answer));
     }
 
     function _handleCovenantRegistration(
@@ -323,6 +259,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 minAbilityScore,
         uint128 price,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) internal returns (bytes32) {
         s_requestIdToNftId[requestId] = s_nftId;
@@ -336,6 +273,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         s_nftIdToCovenantData[s_nftId].minAbilityScore = minAbilityScore;
         s_nftIdToCovenantData[s_nftId].status = CovenantStatus.IN_PROGRESS;
         s_nftIdToCovenantData[s_nftId].shouldWatch = shouldWatch;
+        s_nftIdToCovenantData[s_nftId].isEscrowed = isEscrowed;
         s_nftIdToCovenantData[s_nftId].price = uint128(price);
 
         s_agentDetails[msg.sender].taskId.push(s_nftId);
@@ -356,6 +294,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         address settlementAsset,
         uint128 settlementAmount,
         bool shouldWatch,
+        bool isEscrowed,
         bytes calldata data
     ) internal returns (bytes32) {
         s_requestIdToNftId[requestId] = s_nftId;
@@ -368,6 +307,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         s_nftIdToCovenantData[s_nftId].settlementDetail.settlementAmount = settlementAmount;
         s_nftIdToCovenantData[s_nftId].data = data;
         s_nftIdToCovenantData[s_nftId].shouldWatch = shouldWatch;
+        s_nftIdToCovenantData[s_nftId].isEscrowed = isEscrowed;
 
         _mint(address(this), s_nftId);
 
@@ -462,10 +402,5 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     {
         return interfaceId == type(IAccessControlDefaultAdminRules).interfaceId
             || interfaceId == type(IERC721).interfaceId || interfaceId == type(IERC721Metadata).interfaceId;
-    }
-
-    modifier activeEvaluator(address evaluator) {
-        if (!s_whitelistedEvaluator[evaluator]) revert AccessForbidden();
-        _;
     }
 }

@@ -4,6 +4,7 @@ pragma solidity ^0.8.13;
 import {Test, console} from "forge-std/Test.sol";
 import {ERC20Mock} from "@openzeppelin/contracts/mocks/token/ERC20Mock.sol";
 import {CovenantNFT} from "../src/CovenantNFT.sol";
+import {CovenantEvaluator} from "../src/CovenantEvaluator.sol";
 import {CovenantNFTKudoNode} from "../src/cNFTKudoNode.sol";
 import {MockRouter} from "./mock/mockRouter.sol";
 import {ERC721, IERC721, IERC721Metadata, IERC721Errors} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -15,11 +16,13 @@ import {
 } from "openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 
 contract CounterTest is Test {
-    bytes32 public constant EVALUATOR_ROLE = keccak256("EVALUATOR_ROLE");
+    bytes32 public constant EVALUATOR_CONTRACT_ROLE = keccak256("EVALUATOR_CONTRACT_ROLE");
 
     uint48 constant INITIAL_DELAY = 60;
     uint128 constant SETTLEMENT_TARGET = 10 ether;
     uint128 constant PRICE = 1_000_000;
+
+    uint256 constant MIN_APPROVAL = 1;
 
     bool constant SHOULD_WATCH = true;
 
@@ -32,6 +35,8 @@ contract CounterTest is Test {
     address constant OWNER = address(1);
 
     CovenantNFTKudoNode public s_cNft;
+
+    CovenantEvaluator public s_evaluator;
 
     MockRouter public s_router;
 
@@ -47,6 +52,11 @@ contract CounterTest is Test {
 
         s_cNft = new CovenantNFTKudoNode(address(s_router), OWNER, INITIAL_DELAY);
 
+        s_evaluator = new CovenantEvaluator(address(s_cNft), MIN_APPROVAL, OWNER, INITIAL_DELAY);
+
+        vm.prank(OWNER);
+        s_cNft.grantRole(EVALUATOR_CONTRACT_ROLE, address(s_evaluator));
+
         s_tee = "TEE 101";
         s_agentId = "Agent ID";
 
@@ -58,14 +68,14 @@ contract CounterTest is Test {
     }
 
     function test_WhitelistEvaluator() public whitelistEvaluator(EVALUATOR_ONE) {
-        assertEq(s_cNft.s_whitelistedEvaluator(EVALUATOR_ONE), true);
+        assertEq(s_evaluator.s_whitelistedEvaluator(EVALUATOR_ONE), true);
     }
 
     function test_RemoveWhitelistedEvaluator() public whitelistEvaluator(EVALUATOR_ONE) {
         vm.prank(OWNER);
-        s_cNft.removeEvaluator(EVALUATOR_ONE);
+        s_evaluator.removeEvaluator(EVALUATOR_ONE);
 
-        assertEq(s_cNft.s_whitelistedEvaluator(EVALUATOR_ONE), false);
+        assertEq(s_evaluator.s_whitelistedEvaluator(EVALUATOR_ONE), false);
     }
 
     function test_RevertWhen_EvaluatorNotWhitelisted()
@@ -79,6 +89,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -87,7 +98,7 @@ contract CounterTest is Test {
         vm.expectRevert(CovenantNFT.AccessForbidden.selector);
 
         vm.prank(STRANGER);
-        s_cNft.evaluate(0, bytes32("true"));
+        s_evaluator.evaluate(0, bytes32("true"));
     }
 
     function test_RevertWhen_EvaluateGoalTwice()
@@ -101,6 +112,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -108,10 +120,10 @@ contract CounterTest is Test {
         approveToken(AGENT_WALLET_ONE, address(s_cNft))
         evaluateGoal(EVALUATOR_ONE, 0, true)
     {
-        vm.expectRevert(CovenantNFT.TaskHasBeenEvaluated.selector);
+        vm.expectRevert(CovenantEvaluator.TaskHasBeenEvaluated.selector);
 
         vm.prank(EVALUATOR_ONE);
-        s_cNft.evaluate(0, bytes32("true"));
+        s_evaluator.evaluate(0, bytes32("true"));
     }
 
     function test_EvaluateGoal_PositiveCase()
@@ -125,11 +137,34 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
         whitelistEvaluator(EVALUATOR_ONE)
         approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        evaluateGoal(EVALUATOR_ONE, 0, true)
+    {
+        assertEq(uint8(s_cNft.getCovenant(0).status), 1);
+    }
+
+    function test_EvaluateGoal_PositiveCase_EscrowedFund()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            true,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+        fundAddress(address(s_testToken), address(s_cNft), SETTLEMENT_TARGET)
         evaluateGoal(EVALUATOR_ONE, 0, true)
     {
         assertEq(uint8(s_cNft.getCovenant(0).status), 1);
@@ -146,6 +181,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -171,12 +207,14 @@ contract CounterTest is Test {
         uint128 minAbilityScore,
         uint128 price,
         bool shouldWatch,
+        bool isEscrowed,
         bytes memory data,
         uint256 agentAbilityScore
     ) {
         vm.startPrank(agent);
-        bytes32 requestId =
-            s_cNft.registerCovenant(goal, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, data);
+        bytes32 requestId = s_cNft.registerCovenant(
+            goal, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
+        );
 
         vm.startPrank(address(s_router));
         s_cNft.fulfillRequest(requestId, uint128(agentAbilityScore));
@@ -186,7 +224,7 @@ contract CounterTest is Test {
 
     modifier whitelistEvaluator(address evaluator) {
         vm.prank(OWNER);
-        s_cNft.whitelistEvaluator(EVALUATOR_ONE);
+        s_evaluator.whitelistEvaluator(EVALUATOR_ONE);
         _;
     }
 
@@ -196,9 +234,14 @@ contract CounterTest is Test {
         _;
     }
 
+    modifier fundAddress(address token, address to, uint256 amount) {
+        deal(token, to, amount);
+        _;
+    }
+
     modifier evaluateGoal(address evaluator, uint256 nftId, bool answer) {
         vm.prank(EVALUATOR_ONE);
-        s_cNft.evaluate(nftId, keccak256(abi.encodePacked(evaluator, answer)));
+        s_evaluator.evaluate(nftId, keccak256(abi.encodePacked(evaluator, answer)));
         _;
     }
 }

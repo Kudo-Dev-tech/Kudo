@@ -14,8 +14,9 @@ import {
     IAccessControlDefaultAdminRules
 } from "openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 
-contract CounterTest is Test {
-    bytes32 public constant EVALUATOR_ROLE = keccak256("EVALUATOR_ROLE");
+contract cNFTKudoNodeTest is Test {
+    bytes32 public constant EVALUATOR_CONTRACT_ROLE = keccak256("EVALUATOR_CONTRACT_ROLE");
+    address constant EVALUATOR_CONTRACT = address(2000);
 
     uint48 constant INITIAL_DELAY = 60;
     uint128 constant SETTLEMENT_TARGET = 10 ether;
@@ -26,8 +27,6 @@ contract CounterTest is Test {
     address constant STRANGER = address(10000);
     address constant AGENT_WALLET_ONE = address(101);
     address constant AGENT_WALLET_TWO = address(102);
-
-    address constant EVALUATOR_ONE = address(201);
 
     address constant OWNER = address(1);
 
@@ -46,6 +45,9 @@ contract CounterTest is Test {
         s_router = new MockRouter();
 
         s_cNft = new CovenantNFTKudoNode(address(s_router), OWNER, INITIAL_DELAY);
+
+        vm.prank(OWNER);
+        s_cNft.grantRole(EVALUATOR_CONTRACT_ROLE, EVALUATOR_CONTRACT);
 
         s_tee = "TEE 101";
         s_agentId = "Agent ID";
@@ -82,6 +84,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -104,6 +107,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -114,6 +118,7 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -136,13 +141,17 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
-        registerEvaluator(EVALUATOR_ONE)
     {
         vm.startPrank(STRANGER);
-        vm.expectRevert(CovenantNFT.AccessForbidden.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IAccessControl.AccessControlUnauthorizedAccount.selector, STRANGER, EVALUATOR_CONTRACT_ROLE
+            )
+        );
         s_cNft.setCovenantStatus(0, CovenantNFT.CovenantStatus.COMPLETED);
     }
 
@@ -157,6 +166,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -167,12 +177,12 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
-        registerEvaluator(EVALUATOR_ONE)
     {
-        vm.startPrank(EVALUATOR_ONE);
+        vm.startPrank(EVALUATOR_CONTRACT);
         vm.expectRevert(CovenantNFT.ConditionIsNotMet.selector);
         s_cNft.setCovenantStatus(0, CovenantNFT.CovenantStatus.COMPLETED);
     }
@@ -188,17 +198,17 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
-        registerEvaluator(EVALUATOR_ONE)
     {
         s_testToken.mint(AGENT_WALLET_ONE, 10 ether);
 
         vm.startPrank(AGENT_WALLET_ONE);
         s_testToken.approve(address(s_cNft), UINT256_MAX);
 
-        vm.startPrank(EVALUATOR_ONE);
+        vm.startPrank(EVALUATOR_CONTRACT);
         s_cNft.setCovenantStatus(0, CovenantNFT.CovenantStatus.COMPLETED);
 
         assertEq(uint256(s_cNft.getCovenant(0).status), 1);
@@ -215,6 +225,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -225,6 +236,7 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -246,6 +258,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -256,6 +269,7 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -277,6 +291,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -287,10 +302,10 @@ contract CounterTest is Test {
             address(s_testToken),
             SETTLEMENT_TARGET,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
-        registerEvaluator(EVALUATOR_ONE)
     {
         s_testToken.mint(AGENT_WALLET_ONE, 10 ether);
         s_testToken.mint(AGENT_WALLET_TWO, 10 ether);
@@ -301,7 +316,7 @@ contract CounterTest is Test {
         vm.startPrank(AGENT_WALLET_ONE);
         s_testToken.approve(address(s_cNft), UINT256_MAX);
 
-        vm.startPrank(EVALUATOR_ONE);
+        vm.startPrank(EVALUATOR_CONTRACT);
         s_cNft.setCovenantStatus(1, CovenantNFT.CovenantStatus.COMPLETED);
         s_cNft.setCovenantStatus(0, CovenantNFT.CovenantStatus.COMPLETED);
 
@@ -324,6 +339,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -352,6 +368,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -379,6 +396,7 @@ contract CounterTest is Test {
             PRICE,
             1 ether,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -403,6 +421,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             1 ether
         )
@@ -435,6 +454,7 @@ contract CounterTest is Test {
             1 ether,
             PRICE,
             SHOULD_WATCH,
+            false,
             bytes(""),
             0
         )
@@ -460,22 +480,17 @@ contract CounterTest is Test {
         uint128 minAbilityScore,
         uint128 price,
         bool shouldWatch,
+        bool isEscrowed,
         bytes memory data,
         uint256 agentAbilityScore
     ) {
         vm.startPrank(agent);
-        bytes32 requestId =
-            s_cNft.registerCovenant(goal, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, data);
+        bytes32 requestId = s_cNft.registerCovenant(
+            goal, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
+        );
 
         vm.startPrank(address(s_router));
         s_cNft.fulfillRequest(requestId, uint128(agentAbilityScore));
-        vm.stopPrank();
-        _;
-    }
-
-    modifier registerEvaluator(address evaluator) {
-        vm.startPrank(OWNER);
-        s_cNft.whitelistEvaluator(evaluator);
         vm.stopPrank();
         _;
     }
@@ -487,12 +502,13 @@ contract CounterTest is Test {
         address settlementAsset,
         uint128 settelementAmount,
         bool shouldWatch,
+        bool isEscrowed,
         bytes memory data,
         uint256 agentAbilityScore
     ) {
         vm.startPrank(agent);
         bytes32 requestId =
-            s_cNft.registerCovenant(goal, parentId, settlementAsset, settelementAmount, shouldWatch, data);
+            s_cNft.registerCovenant(goal, parentId, settlementAsset, settelementAmount, shouldWatch, isEscrowed, data);
 
         vm.startPrank(address(s_router));
         s_cNft.fulfillRequest(requestId, uint128(agentAbilityScore));
