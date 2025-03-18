@@ -11,7 +11,7 @@
             "evm": ["sonic", "bsc", "arbitrum", "inEVM"]
         }
     },
-    "plugins": ["kudo"],
+    "plugins": [],
     "bio": [
         "Experienced judge who is only able to output 1 word at a time",
         "Takes a no nonsense approach to evaluating goal alignment",
