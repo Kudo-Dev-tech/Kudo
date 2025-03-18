@@ -22,7 +22,12 @@ contract CounterTest is Test {
     uint128 constant SETTLEMENT_TARGET = 10 ether;
     uint128 constant PRICE = 1_000_000;
 
-    uint256 constant MIN_APPROVAL = 1;
+    uint256 constant MIN_APPROVAL = 3;
+    uint256 constant MIN_STAKE_AMOUNT = 100 ether;
+    uint256 constant MAX_CONSECUTIVE_WRONG_ANSWER = 1;
+
+    uint256 constant BASE_SUSPEND_TIME = 1 days;
+    uint256 constant BASE_SLASH_PERCENTAGE = 0.1 ether;
 
     bool constant SHOULD_WATCH = true;
 
@@ -31,6 +36,8 @@ contract CounterTest is Test {
     address constant AGENT_WALLET_TWO = address(102);
 
     address constant EVALUATOR_ONE = address(201);
+    address constant EVALUATOR_TWO = address(202);
+    address constant EVALUATOR_THREE = address(203);
 
     address constant OWNER = address(1);
 
@@ -50,9 +57,21 @@ contract CounterTest is Test {
     function setUp() public {
         s_router = new MockRouter();
 
+        s_testToken = new ERC20Mock();
+
         s_cNft = new CovenantNFTKudoNode(address(s_router), OWNER, INITIAL_DELAY);
 
-        s_evaluator = new CovenantEvaluator(address(s_cNft), MIN_APPROVAL, OWNER, INITIAL_DELAY);
+        s_evaluator = new CovenantEvaluator(
+            address(s_cNft),
+            address(s_testToken),
+            MIN_APPROVAL,
+            MAX_CONSECUTIVE_WRONG_ANSWER,
+            BASE_SUSPEND_TIME,
+            BASE_SLASH_PERCENTAGE,
+            MIN_STAKE_AMOUNT,
+            OWNER,
+            INITIAL_DELAY
+        );
 
         vm.prank(OWNER);
         s_cNft.grantRole(EVALUATOR_CONTRACT_ROLE, address(s_evaluator));
@@ -62,20 +81,35 @@ contract CounterTest is Test {
 
         s_goal = "Earn 10 Test Token";
 
-        s_testToken = new ERC20Mock();
-
         deal(address(s_testToken), AGENT_WALLET_ONE, 100000 ether);
     }
 
     function test_WhitelistEvaluator() public whitelistEvaluator(EVALUATOR_ONE) {
-        assertEq(s_evaluator.s_whitelistedEvaluator(EVALUATOR_ONE), true);
+        assertEq(s_evaluator.getEvaluatorDetails(EVALUATOR_ONE).whitelistStatus, true);
     }
 
     function test_RemoveWhitelistedEvaluator() public whitelistEvaluator(EVALUATOR_ONE) {
         vm.prank(OWNER);
         s_evaluator.removeEvaluator(EVALUATOR_ONE);
 
-        assertEq(s_evaluator.s_whitelistedEvaluator(EVALUATOR_ONE), false);
+        assertEq(s_evaluator.getEvaluatorDetails(EVALUATOR_ONE).whitelistStatus, false);
+    }
+
+    function test_WhitelistedEvaluatorStake()
+        public
+        whitelistEvaluator(EVALUATOR_ONE)
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+    {
+        assertEq(s_evaluator.getEvaluatorDetails(EVALUATOR_ONE).stakeBalance, MIN_STAKE_AMOUNT);
+    }
+
+    function test_RevertWhen_NonWhitelistedEvaluatorStake()
+        public
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+    {
+        vm.expectRevert(CovenantNFT.AccessForbidden.selector);
+        s_evaluator.stake(MIN_STAKE_AMOUNT);
     }
 
     function test_RevertWhen_EvaluatorNotWhitelisted()
@@ -101,6 +135,29 @@ contract CounterTest is Test {
         s_evaluator.evaluate(0, bytes32("true"));
     }
 
+    function test_RevertWhen_EvaluatorStakingBalanceIsInsufficient()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            false,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+    {
+        vm.expectRevert(CovenantEvaluator.InsufficientStakingBalance.selector);
+
+        vm.prank(EVALUATOR_ONE);
+        s_evaluator.evaluate(0, bytes32("true"));
+    }
+
     function test_RevertWhen_EvaluateGoalTwice()
         public
         registerAgent(AGENT_WALLET_ONE, s_tee)
@@ -118,6 +175,8 @@ contract CounterTest is Test {
         )
         whitelistEvaluator(EVALUATOR_ONE)
         approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
         evaluateGoal(EVALUATOR_ONE, 0, true)
     {
         vm.expectRevert(CovenantEvaluator.TaskHasBeenEvaluated.selector);
@@ -142,8 +201,18 @@ contract CounterTest is Test {
             1 ether
         )
         whitelistEvaluator(EVALUATOR_ONE)
+        whitelistEvaluator(EVALUATOR_TWO)
+        whitelistEvaluator(EVALUATOR_THREE)
         approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_THREE, MIN_STAKE_AMOUNT)
         evaluateGoal(EVALUATOR_ONE, 0, true)
+        evaluateGoal(EVALUATOR_TWO, 0, true)
+        evaluateGoal(EVALUATOR_THREE, 0, true)
     {
         assertEq(uint8(s_cNft.getCovenant(0).status), 1);
     }
@@ -164,8 +233,18 @@ contract CounterTest is Test {
             1 ether
         )
         whitelistEvaluator(EVALUATOR_ONE)
+        whitelistEvaluator(EVALUATOR_TWO)
+        whitelistEvaluator(EVALUATOR_THREE)
         fundAddress(address(s_testToken), address(s_cNft), SETTLEMENT_TARGET)
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_THREE, MIN_STAKE_AMOUNT)
         evaluateGoal(EVALUATOR_ONE, 0, true)
+        evaluateGoal(EVALUATOR_TWO, 0, true)
+        evaluateGoal(EVALUATOR_THREE, 0, true)
     {
         assertEq(uint8(s_cNft.getCovenant(0).status), 1);
     }
@@ -185,11 +264,214 @@ contract CounterTest is Test {
             bytes(""),
             1 ether
         )
-        whitelistEvaluator(EVALUATOR_ONE)
         approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        whitelistEvaluator(EVALUATOR_ONE)
+        whitelistEvaluator(EVALUATOR_TWO)
+        whitelistEvaluator(EVALUATOR_THREE)
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_THREE, MIN_STAKE_AMOUNT)
         evaluateGoal(EVALUATOR_ONE, 0, false)
+        evaluateGoal(EVALUATOR_TWO, 0, false)
+        evaluateGoal(EVALUATOR_THREE, 0, false)
     {
         assertEq(uint8(s_cNft.getCovenant(0).status), 2);
+    }
+
+    function test_EvaluateGoal_WithOneInvalidAnswer()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            false,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+        whitelistEvaluator(EVALUATOR_TWO)
+        whitelistEvaluator(EVALUATOR_THREE)
+        approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        evaluateGoal(EVALUATOR_ONE, 0, true)
+        evaluateGoal(EVALUATOR_TWO, 0, true)
+        evaluateGoal(EVALUATOR_THREE, 0, false)
+    {
+        assertEq(s_evaluator.getEvaluatorDetails(EVALUATOR_THREE).suspendedUntil, block.timestamp + 365 days);
+    }
+
+    function test_EvaluatorGiveInvalidAnswerUnderMaxConsecutiveInvalidAnswerThreshold()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            false,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+        whitelistEvaluator(EVALUATOR_TWO)
+        whitelistEvaluator(EVALUATOR_THREE)
+        approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        setMaxConsecutiveInvalidAnswer(3)
+        evaluateGoal(EVALUATOR_ONE, 0, true)
+        evaluateGoal(EVALUATOR_TWO, 0, true)
+        evaluateGoal(EVALUATOR_THREE, 0, false)
+    {
+        assertEq(
+            s_evaluator.getEvaluatorDetails(EVALUATOR_THREE).stakeBalance,
+            MIN_STAKE_AMOUNT - (MIN_STAKE_AMOUNT * BASE_SLASH_PERCENTAGE / 1 ether)
+        );
+        assertEq(s_evaluator.getEvaluatorDetails(EVALUATOR_THREE).suspendedUntil, block.timestamp + BASE_SUSPEND_TIME);
+    }
+
+    function test_ClaimSlashedFund()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            false,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+        whitelistEvaluator(EVALUATOR_TWO)
+        whitelistEvaluator(EVALUATOR_THREE)
+        approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        setMaxConsecutiveInvalidAnswer(3)
+        evaluateGoal(EVALUATOR_ONE, 0, true)
+        evaluateGoal(EVALUATOR_TWO, 0, true)
+        evaluateGoal(EVALUATOR_THREE, 0, false)
+    {
+        uint256 adminInitialBalance = s_testToken.balanceOf(OWNER);
+
+        vm.prank(OWNER);
+        s_evaluator.claimSlashedFund(OWNER);
+
+        assertEq(adminInitialBalance + MIN_STAKE_AMOUNT * BASE_SLASH_PERCENTAGE / 1 ether, s_testToken.balanceOf(OWNER));
+    }
+
+    function test_RemoveEvaluatorSuspension()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            false,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+        whitelistEvaluator(EVALUATOR_TWO)
+        whitelistEvaluator(EVALUATOR_THREE)
+        approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_THREE, MIN_STAKE_AMOUNT)
+        setMaxConsecutiveInvalidAnswer(3)
+        evaluateGoal(EVALUATOR_ONE, 0, true)
+        evaluateGoal(EVALUATOR_TWO, 0, true)
+        evaluateGoal(EVALUATOR_THREE, 0, false)
+    {
+        vm.prank(OWNER);
+        s_evaluator.removeEvaluatorSuspension(EVALUATOR_THREE);
+
+        assertEq(s_evaluator.getEvaluatorDetails(EVALUATOR_THREE).suspendedUntil, 0);
+    }
+
+    function test_RevertWhen_EvaluatorIsSuspended()
+        public
+        registerAgent(AGENT_WALLET_ONE, s_tee)
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            false,
+            bytes(""),
+            1 ether
+        )
+        registerCovenant(
+            AGENT_WALLET_ONE,
+            s_goal,
+            address(s_testToken),
+            SETTLEMENT_TARGET,
+            1 ether,
+            PRICE,
+            SHOULD_WATCH,
+            false,
+            bytes(""),
+            1 ether
+        )
+        whitelistEvaluator(EVALUATOR_ONE)
+        whitelistEvaluator(EVALUATOR_TWO)
+        whitelistEvaluator(EVALUATOR_THREE)
+        approveToken(AGENT_WALLET_ONE, address(s_cNft))
+        fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        fundAddress(address(s_testToken), EVALUATOR_THREE, MIN_STAKE_AMOUNT * 10)
+        stakeEvaluator(EVALUATOR_ONE, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_TWO, MIN_STAKE_AMOUNT)
+        stakeEvaluator(EVALUATOR_THREE, MIN_STAKE_AMOUNT * 10)
+        setMaxConsecutiveInvalidAnswer(3)
+        evaluateGoal(EVALUATOR_ONE, 0, true)
+        evaluateGoal(EVALUATOR_TWO, 0, true)
+        evaluateGoal(EVALUATOR_THREE, 0, false)
+    {
+        vm.startPrank(EVALUATOR_THREE);
+
+        vm.expectRevert(CovenantEvaluator.Suspended.selector);
+        s_evaluator.evaluate(1, keccak256(abi.encodePacked(EVALUATOR_THREE, true)));
+
+        vm.stopPrank();
     }
 
     modifier registerAgent(address agent, string memory tee) {
@@ -224,7 +506,7 @@ contract CounterTest is Test {
 
     modifier whitelistEvaluator(address evaluator) {
         vm.prank(OWNER);
-        s_evaluator.whitelistEvaluator(EVALUATOR_ONE);
+        s_evaluator.whitelistEvaluator(evaluator);
         _;
     }
 
@@ -240,8 +522,22 @@ contract CounterTest is Test {
     }
 
     modifier evaluateGoal(address evaluator, uint256 nftId, bool answer) {
-        vm.prank(EVALUATOR_ONE);
+        vm.prank(evaluator);
         s_evaluator.evaluate(nftId, keccak256(abi.encodePacked(evaluator, answer)));
+        _;
+    }
+
+    modifier setMaxConsecutiveInvalidAnswer(uint256 amount) {
+        vm.prank(OWNER);
+        s_evaluator.setMaxConsecutiveInvalidAnswer(amount);
+        _;
+    }
+
+    modifier stakeEvaluator(address evaluator, uint256 stakeAmount) {
+        vm.startPrank(evaluator);
+        s_testToken.approve(address(s_evaluator), stakeAmount);
+        s_evaluator.stake(stakeAmount);
+        vm.stopPrank();
         _;
     }
 }
