@@ -76,7 +76,7 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         string[] memory input = new string[](2);
 
         input[0] = Strings.toHexString(uint256(uint160(msg.sender)), 20);
-        input[1] = Strings.toString(s_nftIdToCovenantData[parentCovenantId].minAbilityScore);
+        input[1] = Strings.toString(getCovenantDetails(parentCovenantId).covenantData.minAbilityScore);
 
         bytes32 requestId = sendRequest(s_subsId, input);
 
