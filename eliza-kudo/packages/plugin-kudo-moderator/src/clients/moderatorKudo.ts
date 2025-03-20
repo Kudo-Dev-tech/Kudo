@@ -10,17 +10,15 @@ import { type CreateConfigParameters } from '@wagmi/core'
 const config = createConfig({
     chains: [arbitrum],
     transports: {
-        [arbitrum.id]: http("https://arb-mainnet.g.alchemy.com/v2/Q5TxpTVf_JI2DtOAgZuy17s0Ln2HDrt7")
+        [arbitrum.id]: http()
     }
 
 })
 
 async function watchEvent() {
     const unwatch = watchContractEvent(config, {
-        moderatorKudoABI,
-        args: { 
-          to: '0x530BEba1A237a01f342199Bf0d3FC5FE628e4cB8', 
-        }, 
+        abi: moderatorKudoABI,
+        address: '0x530BEba1A237a01f342199Bf0d3FC5FE628e4cB8',
         onLogs(logs) {
           console.log('watchEvent Triggered!')
         },
@@ -28,11 +26,9 @@ async function watchEvent() {
     console.log(unwatch)
 }
 
-
-
 export const KudoModeratorClientInterface: Client = {
     start: async (runtime: IAgentRuntime) => {
-        watchEvent()
+        await watchEvent()
         return null;
     },
     stop: async (_runtime: IAgentRuntime) => {
