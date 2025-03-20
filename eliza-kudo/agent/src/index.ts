@@ -13,7 +13,6 @@ import { TwitterClientInterface } from "@elizaos/client-twitter";
 // import { ReclaimAdapter } from "@elizaos/plugin-reclaim";
 import { DirectClient } from "@elizaos/client-direct";
 import { PrimusAdapter } from "@elizaos/plugin-primus";
-import { balanceMonitorPlugin } from "@elizaos/plugin-balance-monitor"
 
 import {
     AgentRuntime,
@@ -35,14 +34,11 @@ import {
     stringToUuid,
     validateCharacterConfig,
 } from "@elizaos/core";
-import { zgPlugin } from "@elizaos/plugin-0g";
 
 import { bootstrapPlugin } from "@elizaos/plugin-bootstrap";
 import createGoatPlugin from "@elizaos/plugin-goat";
 // import { intifacePlugin } from "@elizaos/plugin-intiface";
 import { DirectClient } from "@elizaos/client-direct";
-import { evmPlugin } from "@elizaos/plugin-evm";
-import { kudoPlugin } from "@elizaos/plugin-kudo";
 import { createNodePlugin } from "@elizaos/plugin-node";
 import { TEEMode } from "@elizaos/plugin-tee";
 
@@ -557,8 +553,10 @@ export async function initializeClients(
         if (slackClient) clients.slack = slackClient; // Use object property instead of push
     }
 
-    const kudoClient = await KudoClientInterface.start(runtime);
-    if (kudoClient) clients.kudo = kudoClient;
+    if (clientTypes.includes("kudo")) {
+        const kudoClient = await KudoClientInterface.start(runtime);
+        if (kudoClient) clients.kudo = kudoClient;
+    }
 
     function determineClientType(client: Client): string {
         // Check if client has a direct type identifier
@@ -690,14 +688,7 @@ export async function createAgent(
         // character.plugins are handled when clients are added
         plugins: [
             bootstrapPlugin,
-            nodePlugin,
-            kudoPlugin,
-            balanceMonitorPlugin,
-            getSecret(character, "EVM_PUBLIC_KEY") ||
-            (getSecret(character, "WALLET_PUBLIC_KEY") &&
-                getSecret(character, "WALLET_PUBLIC_KEY")?.startsWith("0x"))
-                ? evmPlugin
-                : null,
+            nodePlugin
         ].filter(Boolean),
         providers: [],
         actions: [],
