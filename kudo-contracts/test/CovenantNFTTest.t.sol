@@ -104,6 +104,57 @@ contract CounterTest is Test {
         assertEq(s_evaluator.getEvaluatorDetails(EVALUATOR_ONE).stakeBalance, MIN_STAKE_AMOUNT);
     }
 
+    function test_SetMaxConsecutiveInvalidAnswer() public {
+        uint256 newMaxConsecutiveInvalidAnswerValue = 5;
+
+        vm.prank(OWNER);
+        s_evaluator.setMaxConsecutiveInvalidAnswer(newMaxConsecutiveInvalidAnswerValue);
+
+        assertEq(s_evaluator.getMaximumConsecutiveInvalidAnswer(), newMaxConsecutiveInvalidAnswerValue);
+    }
+
+    function test_RevertWhen_SetMinimumEvaluationIsEven() public {
+        vm.expectRevert(CovenantEvaluator.MinimumEvaluationIsEven.selector);
+        vm.prank(OWNER);
+        s_evaluator.setMinimumEvaluation(2);
+    }
+
+    function test_SetMinimumEvaluation() public {
+        uint256 newEvalutionValue = 5;
+
+        vm.prank(OWNER);
+        s_evaluator.setMinimumEvaluation(newEvalutionValue);
+
+        assertEq(s_evaluator.getMinimumEvaluation(), newEvalutionValue);
+    }
+
+    function test_SetBaseSuspendTime() public {
+        uint256 newBaseSuspendTimeValue = 10 hours;
+
+        vm.prank(OWNER);
+        s_evaluator.setBaseSuspendTime(newBaseSuspendTimeValue);
+
+        assertEq(s_evaluator.getBaseSuspendTime(), newBaseSuspendTimeValue);
+    }
+
+    function test_SetBaseSlashPercentage() public {
+        uint256 newBaseSlashPercentageValue = 0.5 ether;
+
+        vm.prank(OWNER);
+        s_evaluator.setBaseSlashPercentage(newBaseSlashPercentageValue);
+
+        assertEq(s_evaluator.getBaseSlashPercentage(), newBaseSlashPercentageValue);
+    }
+
+    function test_SetMinimumStakingBalance() public {
+        uint256 newMinimumStakingBalanceValue = 0.5 ether;
+
+        vm.prank(OWNER);
+        s_evaluator.setMinimumStakingBalance(newMinimumStakingBalanceValue);
+
+        assertEq(s_evaluator.getMinimumStakingBalance(), newMinimumStakingBalanceValue);
+    }
+
     function test_RevertWhen_NonWhitelistedEvaluatorStake()
         public
         fundAddress(address(s_testToken), EVALUATOR_ONE, MIN_STAKE_AMOUNT)
@@ -310,7 +361,8 @@ contract CounterTest is Test {
         evaluateGoal(EVALUATOR_TWO, 0, true)
         evaluateGoal(EVALUATOR_THREE, 0, false)
     {
-        assertEq(s_evaluator.getEvaluatorDetails(EVALUATOR_THREE).suspendedUntil, block.timestamp + 365 days);
+        assertEq(s_evaluator.getEvaluatorDetails(EVALUATOR_THREE).suspendedUntil, type(uint256).max);
+        assertEq(s_evaluator.getClaimableSlashedFund(), MIN_STAKE_AMOUNT * BASE_SLASH_PERCENTAGE / 1 ether);
     }
 
     function test_EvaluatorGiveInvalidAnswerUnderMaxConsecutiveInvalidAnswerThreshold()

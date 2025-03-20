@@ -9,8 +9,8 @@ import {
 } from "openzeppelin-contracts/contracts/access/extensions/AccessControlDefaultAdminRules.sol";
 
 contract CovenantEvaluator is AccessControlDefaultAdminRules {
-    /// @notice Minimum number of approvals required for an evaluation to be valid
-    uint256 private s_minApproval;
+    /// @notice Minimum number of evaluation required for an evaluation to be valid
+    uint256 private s_minEvaluation;
 
     /// @notice Base percentage of funds to be slashed for incorrect evaluation
     uint256 private s_baseSlashPercentage;
@@ -68,14 +68,33 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
     /// @notice Thrown when task has already been evaluated
     error TaskHasBeenEvaluated();
 
+    /// @notice Thrown whne minimum evaluation is even
+    error MinimumEvaluationIsEven();
+
     /// @notice Emitted when an evaluator stakes their tokens
     /// @param evaluator The address of the evaluator
     /// @param amount The amount of tokens staked
     event EvaluatorStaked(address indexed evaluator, uint256 amount);
 
-    /// @notice Emitted when the maximum consecutive invalid answers limit is set
+    /// @notice Emitted when the maximum consecutive invalid answers limit is updated
     /// @param maxConsecutiveInvalidAnswer The new maximum number of consecutive invalid answers allowed
     event MaxConsecutiveInvalidAnswerSet(uint256 maxConsecutiveInvalidAnswer);
+
+    /// @notice Emitted when the minimum required evaluations are updated
+    /// @param minEvaluation The new minimum number of evaluations required
+    event MinimumEvaluationSet(uint256 minEvaluation);
+
+    /// @notice Emitted when the base suspension time is updated
+    /// @param baseSuspendTime The new base suspension duration in seconds
+    event BaseSuspendTimeSet(uint256 baseSuspendTime);
+
+    /// @notice Emitted when the base slash percentage is updated
+    /// @param baseSlashPercentage The new base percentage of funds to be slashed in ethers
+    event BaseSlashPercentageSet(uint256 baseSlashPercentage);
+
+    /// @notice Emitted when the minimum staking balance requirement is updated
+    /// @param minimumStakingBalance The new minimum staking balance required
+    event MinimumStakingBalanceSet(uint256 minimumStakingBalance);
 
     /// @notice Stores evaluation details of a cNFT
     struct CovenantEvaluations {
@@ -119,8 +138,8 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
         uint48 initialDelay
     ) AccessControlDefaultAdminRules(initialDelay, admin) {
         i_cNFT = CovenantNFT(cNFT);
-        s_minApproval = minApproval;
         i_stakingAsset = IERC20(asset);
+        s_minEvaluation = minApproval;
         s_maxConsecutiveInvalidAnswer = maxConsecutiveInvalidAnswer;
         s_baseSuspendTime = baseSuspendTime;
         s_baseSlashPercentage = baseSlashPercentage;
@@ -147,6 +166,40 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
         s_maxConsecutiveInvalidAnswer = maxConsecutiveInvalidAnswer;
 
         emit MaxConsecutiveInvalidAnswerSet(maxConsecutiveInvalidAnswer);
+    }
+
+    /// @notice Sets the minimum number of evaluations required
+    /// @param minEvaluation The new minimum number of evaluations required
+    function setMinimumEvaluation(uint256 minEvaluation) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        if (minEvaluation % 2 == 0) revert MinimumEvaluationIsEven();
+
+        s_minEvaluation = minEvaluation;
+
+        emit MinimumEvaluationSet(s_minEvaluation);
+    }
+
+    /// @notice Sets the base suspension time
+    /// @param baseSuspendTime The new base suspension duration in seconds
+    function setBaseSuspendTime(uint256 baseSuspendTime) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        s_baseSuspendTime = baseSuspendTime;
+
+        emit BaseSuspendTimeSet(s_baseSuspendTime);
+    }
+
+    /// @notice Sets the base percentage of funds to be slashed for invalid answers
+    /// @param baseSlashPercentage The new base slash percentage
+    function setBaseSlashPercentage(uint256 baseSlashPercentage) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        s_baseSlashPercentage = baseSlashPercentage;
+
+        emit BaseSlashPercentageSet(s_baseSlashPercentage);
+    }
+
+    /// @notice Sets the minimum staking balance required for evaluators
+    /// @param minStakingBalance The new minimum staking balance
+    function setMinimumStakingBalance(uint256 minStakingBalance) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        s_minimumStakingBalance = minStakingBalance;
+
+        emit MinimumStakingBalanceSet(s_minimumStakingBalance);
     }
 
     /// @notice Whitelists an evaluator
@@ -196,7 +249,7 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
             EvaluationDetail({evaluator: msg.sender, rawAnswer: answer, answer: false})
         );
 
-        if (s_nftIdToCovenantEvaluations[nftId].voteAmt == s_minApproval) {
+        if (s_nftIdToCovenantEvaluations[nftId].voteAmt == s_minEvaluation) {
             _extractAnswer(nftId);
         }
     }
@@ -206,6 +259,42 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
     /// @return EvaluatorDetail Struct containing detailed information
     function getEvaluatorDetails(address evaluator) external view returns (EvaluatorDetail memory) {
         return s_evaluatorDetails[evaluator];
+    }
+
+    /// @notice Getter for the minimum evaluation required for an evaluation
+    /// @return The minimum number of evaluation needed
+    function getMinimumEvaluation() external view returns (uint256) {
+        return s_minEvaluation;
+    }
+
+    /// @notice Getter for the base percentage of funds to be slashed
+    /// @return The base slash percentage
+    function getBaseSlashPercentage() external view returns (uint256) {
+        return s_baseSlashPercentage;
+    }
+
+    /// @notice Getter for the base suspension time
+    /// @return The base suspension duration in seconds
+    function getBaseSuspendTime() external view returns (uint256) {
+        return s_baseSuspendTime;
+    }
+
+    /// @notice Getter for the maximum number of consecutive invalid answers allowed
+    /// @return The maximum consecutive invalid answers before penalties apply
+    function getMaximumConsecutiveInvalidAnswer() external view returns (uint256) {
+        return s_maxConsecutiveInvalidAnswer;
+    }
+
+    /// @notice Getter for the total amount of slashed funds that can be claimed
+    /// @return The amount of claimable slashed funds
+    function getClaimableSlashedFund() external view returns (uint256) {
+        return s_slashedFund;
+    }
+
+    /// @notice Getter for the minimum staking balance required for evaluators
+    /// @return The minimum staking balance
+    function getMinimumStakingBalance() external view returns (uint256) {
+        return s_minimumStakingBalance;
     }
 
     /// @notice Extracts the encoded answers for a desired Covenant NFT
@@ -264,7 +353,7 @@ contract CovenantEvaluator is AccessControlDefaultAdminRules {
             return;
         }
 
-        s_evaluatorDetails[evaluator].suspendedUntil = block.timestamp + 365 days;
+        s_evaluatorDetails[evaluator].suspendedUntil = type(uint256).max;
     }
 
     /// @notice Function to create commitment to compare encoded evaluator answer
