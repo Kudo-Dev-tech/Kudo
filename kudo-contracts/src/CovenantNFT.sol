@@ -83,6 +83,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         CovenantStatus status;
         /// @notice The description of the goal
         string goal;
+        /// @notice The details of the goal
         string goalDetail;
         /// @notice List of subgoals cNFT id
         uint64[] subgoalsId;
@@ -90,6 +91,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint64 parentGoalId;
         /// @notice The amount needed to purchase the NFT
         uint128 price;
+        /// @notice The settlement details
         SettlementDetails settlementDetail;
         /// @notice agent minimum ability score to mint covenant
         uint128 minAbilityScore;
@@ -97,6 +99,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 abilityScore;
         /// @notice Status of covenant's agent watch status
         bool shouldWatch;
+        /// @notice Fund status is held in escrow within the contract.
         bool isEscrowed;
         /// @notice Arbitrary data that can be stored alongside the NFT
         bytes data;
