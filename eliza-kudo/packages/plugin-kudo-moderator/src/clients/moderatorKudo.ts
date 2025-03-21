@@ -8,7 +8,7 @@ import { arbitrum } from 'viem/chains'
 
 const publicClient = createPublicClient({
     chain: arbitrum,
-    transport: http("https://arb-mainnet.g.alchemy.com/v2/Q5TxpTVf_JI2DtOAgZuy17s0Ln2HDrt7")
+    transport: http("")
 })
 
 async function watchContractEvent() {
