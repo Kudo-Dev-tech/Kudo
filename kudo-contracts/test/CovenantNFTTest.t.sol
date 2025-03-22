@@ -22,6 +22,8 @@ contract CounterTest is Test {
     uint128 constant SETTLEMENT_TARGET = 10 ether;
     uint128 constant PRICE = 1_000_000;
 
+    uint256 constant EMPLOYMENT_TYPE_ID = 0;
+
     uint256 constant MIN_APPROVAL = 1;
 
     bool constant SHOULD_WATCH = true;
@@ -102,6 +104,7 @@ contract CounterTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -125,6 +128,7 @@ contract CounterTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -150,6 +154,7 @@ contract CounterTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -172,6 +177,7 @@ contract CounterTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -194,6 +200,7 @@ contract CounterTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -220,6 +227,7 @@ contract CounterTest is Test {
 
     modifier registerCovenant(
         address agent,
+        uint256 nftTypeId,
         string memory goal,
         address settlementAsset,
         uint128 settelementAmount,
@@ -232,7 +240,7 @@ contract CounterTest is Test {
     ) {
         vm.startPrank(agent);
         bytes32 requestId = s_cNft.registerCovenant(
-            goal, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
+            goal, nftTypeId, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
         );
 
         vm.startPrank(address(s_router));

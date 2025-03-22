@@ -52,7 +52,8 @@ contract DeployCNft is Script, Constants {
         vm.startBroadcast(deployerPrivateKey);
 
         s_cNFT.registerCovenant(
-            "Post a short explaination of project A",
+            "Post a short explanation of project A",
+            0,
             USDC_ADDRESS,
             1_000_000,
             1 ether,

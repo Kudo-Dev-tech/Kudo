@@ -21,6 +21,8 @@ contract cNFTCLFunctionsTest is Test {
     uint128 constant SETTLEMENT_TARGET = 10 ether;
     uint128 constant PRICE = 1_000_000;
 
+    uint256 constant EMPLOYMENT_TYPE_ID = 0;
+
     bool constant SHOULD_WATCH = true;
 
     address constant STRANGER = address(10000);
@@ -84,6 +86,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -99,6 +102,7 @@ contract cNFTCLFunctionsTest is Test {
         assertEq(s_cNft.getCovenant(0).goal, s_goal);
         assertEq(s_cNft.getCovenant(0).data, bytes(""));
         assertEq(s_cNft.getCovenant(0).shouldWatch, SHOULD_WATCH);
+        assertEq(s_cNft.getCovenant(0).nftType, "EMPLOYMENT");
         assertEq(uint256(s_cNft.getCovenant(0).status), 0);
     }
 
@@ -107,6 +111,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -119,6 +124,7 @@ contract cNFTCLFunctionsTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -141,6 +147,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -167,6 +174,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -179,6 +187,7 @@ contract cNFTCLFunctionsTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -199,6 +208,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -226,6 +236,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -238,6 +249,7 @@ contract cNFTCLFunctionsTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -259,6 +271,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -271,6 +284,7 @@ contract cNFTCLFunctionsTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -294,6 +308,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -306,6 +321,7 @@ contract cNFTCLFunctionsTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -342,6 +358,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -371,6 +388,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -399,6 +417,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -424,6 +443,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -457,6 +477,7 @@ contract cNFTCLFunctionsTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -490,6 +511,7 @@ contract cNFTCLFunctionsTest is Test {
         public
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -516,6 +538,7 @@ contract cNFTCLFunctionsTest is Test {
 
     modifier registerCovenant(
         address agent,
+        uint256 nftTypeId,
         string memory goal,
         address settlementAsset,
         uint128 settelementAmount,
@@ -528,7 +551,7 @@ contract cNFTCLFunctionsTest is Test {
     ) {
         vm.startPrank(agent);
         bytes32 requestId = s_cNft.registerCovenant(
-            goal, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
+            goal, nftTypeId, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
         );
 
         vm.startPrank(address(s_router));
@@ -539,6 +562,7 @@ contract cNFTCLFunctionsTest is Test {
 
     modifier registerSubgoalCovenant(
         address agent,
+        uint256 nftTypeId,
         string memory goal,
         uint64 parentId,
         address settlementAsset,
@@ -549,8 +573,9 @@ contract cNFTCLFunctionsTest is Test {
         uint256 agentAbilityScore
     ) {
         vm.startPrank(agent);
-        bytes32 requestId =
-            s_cNft.registerCovenant(goal, parentId, settlementAsset, settelementAmount, shouldWatch, isEscrowed, data);
+        bytes32 requestId = s_cNft.registerCovenant(
+            goal, nftTypeId, parentId, settlementAsset, settelementAmount, shouldWatch, isEscrowed, data
+        );
 
         vm.startPrank(address(s_router));
         s_cNft.handleOracleFulfillment(requestId, abi.encodePacked(Strings.toString(agentAbilityScore)), bytes(""));
