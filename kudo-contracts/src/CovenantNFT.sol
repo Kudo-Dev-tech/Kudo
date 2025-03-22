@@ -27,19 +27,19 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     }
 
     /// @notice Covenant NFT id counter
-    uint256 s_nftId;
+    uint256 internal s_nftId;
 
     /// @notice Holds every agents id
     EnumerableSet.AddressSet s_agents;
 
     /// @notice Stores agent details mapped by their address
-    mapping(address agentAddress => AgentManagement agentManagementInfo) internal s_agentDetails;
+    mapping(address agentAddress => AgentManagement agentManagementInfo) private s_agentDetails;
 
     /// @notice Maps NFT ID to its corresponding Covenant data
-    mapping(uint256 s_nftId => CovenantData cNFTDetails) public s_nftIdToCovenantData;
+    mapping(uint256 nftId => CovenantData cNFTDetails) private s_nftIdToCovenantData;
 
     /// @notice Links a Chainlink request ID to an NFT ID
-    mapping(bytes32 requestId => uint256 nftId) public s_requestIdToNftId;
+    mapping(bytes32 requestId => uint256 nftId) internal s_requestIdToNftId;
 
     /// @notice Stores settlement data for a given Covenant NFT ID
     mapping(uint256 cNftId => string settlemenData) private s_nftSettlementData;
@@ -83,6 +83,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         CovenantStatus status;
         /// @notice The description of the goal
         string goal;
+        /// @notice The details of the goal
         string goalDetail;
         /// @notice List of subgoals cNFT id
         uint64[] subgoalsId;
@@ -90,6 +91,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint64 parentGoalId;
         /// @notice The amount needed to purchase the NFT
         uint128 price;
+        /// @notice The settlement details
         SettlementDetails settlementDetail;
         /// @notice agent minimum ability score to mint covenant
         uint128 minAbilityScore;
@@ -97,6 +99,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint128 abilityScore;
         /// @notice Status of covenant's agent watch status
         bool shouldWatch;
+        /// @notice Fund status is held in escrow within the contract.
         bool isEscrowed;
         /// @notice Arbitrary data that can be stored alongside the NFT
         bytes data;
@@ -368,7 +371,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Retrieves desired covenants details
     /// @param nftId The ID of the target NFT for retrieving covenant details
     /// @return CovenantDetails Details of specific NFT
-    function getCovenantDetails(uint256 nftId) external view returns (CovenantDetails memory) {
+    function getCovenantDetails(uint256 nftId) public view returns (CovenantDetails memory) {
         CovenantDetails memory data = CovenantDetails({
             nftId: nftId,
             agentName: s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].agentName,
