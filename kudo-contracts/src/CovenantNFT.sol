@@ -36,7 +36,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     mapping(address agentAddress => AgentManagement agentManagementInfo) private s_agentDetails;
 
     /// @notice Maps NFT ID to its corresponding Covenant data
-    mapping(uint256 s_nftId => CovenantData cNFTDetails) private s_nftIdToCovenantData;
+    mapping(uint256 nftId => CovenantData cNFTDetails) private s_nftIdToCovenantData;
 
     /// @notice Links a Chainlink request ID to an NFT ID
     mapping(bytes32 requestId => uint256 nftId) internal s_requestIdToNftId;
