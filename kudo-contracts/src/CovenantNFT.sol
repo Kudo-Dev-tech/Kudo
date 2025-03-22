@@ -270,6 +270,19 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         emit CovenantStatusSet(nftId, status);
     }
 
+    /// @notice Handles the registration of a Covenant
+    /// @dev Processes covenant-related data and determines settlement parameters
+    /// @param requestId The unique identifier for the request
+    /// @param task The task associated with the subgoal
+    /// @param nftTypeId The NFT type ID
+    /// @param settlementAsset The asset used for settlement
+    /// @param settlementAmount The amount required for settlement
+    /// @param minAbilityScore The minimum ability score to take the Covenant NFT task
+    /// @param price The purchase price for the Covenant NFT
+    /// @param shouldWatch Indicates whether the covenant should be monitored by evaluator agent
+    /// @param isEscrowed Specifies if the settlement amount is escrowed
+    /// @param data Additional data related to the Covenant NFT
+    /// @return bytes32 Id for API call request
     function _handleCovenantRegistration(
         bytes32 requestId,
         string calldata task,
@@ -308,6 +321,18 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         return requestId;
     }
 
+    /// @notice Handles the registration of a subgoal covenant.
+    /// @dev Processes covenant-related data and determines settlement parameters.
+    /// @param requestId The unique identifier for the request
+    /// @param task The task associated with the subgoal
+    /// @param nftTypeId The NFT type ID
+    /// @param parentCovenantId The parent covenant ID
+    /// @param settlementAsset The asset used for settlement
+    /// @param settlementAmount The amount required for settlement
+    /// @param shouldWatch Indicates whether the covenant should be monitored by evaluator agent
+    /// @param isEscrowed Specifies if the settlement amount is escrowed
+    /// @param data Additional data related to the Covenant NFT
+    /// @return bytes32 Id for API call request
     function _handleSubgoalCovenantRegistration(
         bytes32 requestId,
         string calldata task,
@@ -341,6 +366,10 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         return requestId;
     }
 
+    /// @notice Process a callback with ability score and NFT ID.
+    /// @dev Handles logic related to ability scores and specific NFTs.
+    /// @param abilityScore The ability score associated with the NFT.
+    /// @param nftId The unique identifier of the NFT.
     function _processCallback(uint128 abilityScore, uint256 nftId) internal {
         if (abilityScore < s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].parentGoalId].minAbilityScore) {
             _burn(nftId);
