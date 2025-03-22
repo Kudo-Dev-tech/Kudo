@@ -46,6 +46,7 @@
         "@elizaos/plugin-conflux": "workspace:*",
         "@elizaos/plugin-evm": "workspace:*",
         "@elizaos/plugin-kudo": "workspace:*",
+        "@elizaos/plugin-kudo-moderator": "workspace:*",
         "@elizaos/plugin-token-promoter": "workspace:*",
         "@elizaos/plugin-balance-monitor": "workspace:*",
         "@elizaos/plugin-echochambers": "workspace:*",
