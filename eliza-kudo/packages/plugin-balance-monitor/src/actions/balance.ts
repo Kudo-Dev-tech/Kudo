@@ -51,10 +51,10 @@ export const balanceAction: Action = {
         })) as {
             amount: string;
             token: string;
-            chain: string
+            chain: string;
         };
 
-        const description = `Mint CovenantNFT if agent balance is below ${response.amount} ${response.token} on ${response.chain}`
+        const description = `Mint CovenantNFT if agent balance is below ${response.amount} ${response.token} on ${response.chain}`;
 
         const goal: Goal = {
             roomId: stringToUuid("BALANCE_ROOM"),

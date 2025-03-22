@@ -20,7 +20,7 @@ export const tokenPromoterPlugin: Plugin = {
         verifyAction,
         postSocialInteraction,
         promoteSocialInteractionAction,
-        reactToSocialInteractionAction
+        reactToSocialInteractionAction,
     ],
     clients: [],
 };

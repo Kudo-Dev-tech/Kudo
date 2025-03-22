@@ -19,28 +19,25 @@ import { TOPUP_INSUFFICIENT_BALANCE } from "..";
 import { DateTime } from "luxon";
 import { HandlerCallback } from "@elizaos/core";
 
-const DEFAULT_CHAIN = "ARBITRUM"
-const DEFAULT_TOKEN = 6
+const DEFAULT_CHAIN = "ARBITRUM";
+const DEFAULT_TOKEN = 6;
 
 const CONTRACT_ADDRESSES = {
     ARBITRUM: {
         USDC: {
             address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
-            decimals: 6
+            decimals: 6,
         },
     },
     SONIC: {
         USDC: {
             address: "0x29219dd400f2bf60e5a23d13be72b486d4038894",
-            decimals: 6
-        }
+            decimals: 6,
+        },
     },
     INJEVM: {
-        USDC: {
-
-        }
-    }
-
+        USDC: {},
+    },
 };
 
 export const balanceEvaluator: Evaluator = {
@@ -92,8 +89,14 @@ export const balanceEvaluator: Evaluator = {
             tokenAddress: string;
         };
 
-        goalObj.tokenAddress = CONTRACT_ADDRESSES[goalObj.chain.toUpperCase() || DEFAULT_CHAIN][goalObj.token.toUpperCase() || DEFAULT_TOKEN].address;
-        goalObj.tokenDecimals = CONTRACT_ADDRESSES[goalObj.chain.toUpperCase() || DEFAULT_CHAIN][goalObj.token.toUpperCase() || DEFAULT_TOKEN].decimals
+        goalObj.tokenAddress =
+            CONTRACT_ADDRESSES[goalObj.chain.toUpperCase() || DEFAULT_CHAIN][
+                goalObj.token.toUpperCase() || DEFAULT_TOKEN
+            ].address;
+        goalObj.tokenDecimals =
+            CONTRACT_ADDRESSES[goalObj.chain.toUpperCase() || DEFAULT_CHAIN][
+                goalObj.token.toUpperCase() || DEFAULT_TOKEN
+            ].decimals;
 
         const wallet = await initWalletProvider(runtime);
         const walletBalance = await wallet.getWalletERC20Balance(
