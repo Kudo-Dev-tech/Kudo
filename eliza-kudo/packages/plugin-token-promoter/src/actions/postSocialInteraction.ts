@@ -62,7 +62,7 @@ export const postSocialInteraction: Action = {
         })) as {
             post: string;
             nftId: number;
-            chain: SupportedChain
+            chain: SupportedChain;
         };
 
         const kudo = new kudoClient.KudoClient(runtime, chain);

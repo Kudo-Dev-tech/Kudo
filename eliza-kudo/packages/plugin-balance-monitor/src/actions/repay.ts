@@ -47,7 +47,8 @@ export const repayAction: Action = {
         "REPAY_COVENANT_NFT",
         "COVENANT_NFT_REPAYMENT",
     ],
-    description: "Repay some USDC at a certain time after borrowing some amount of USDC",
+    description:
+        "Repay some USDC at a certain time after borrowing some amount of USDC",
     validate: async () => {
         return true;
     },
@@ -91,10 +92,13 @@ export const repayAction: Action = {
         })) as {
             amount: string;
             nftId: number;
-            chain: SupportedChain
+            chain: SupportedChain;
         };
 
-        const kudo = new kudoClient.KudoClient(runtime, settleParams.chain || "sonic");
+        const kudo = new kudoClient.KudoClient(
+            runtime,
+            settleParams.chain || "sonic"
+        );
         await kudo.settle(settleParams.nftId);
     },
     examples: [

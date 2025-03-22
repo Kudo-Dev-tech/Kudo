@@ -49,7 +49,7 @@ export const socialInteractionAction: Action = {
         })) as {
             token: string;
             abilityScore: number;
-            chain: SupportedChain
+            chain: SupportedChain;
         };
 
         const goalDescription = `Write that "Tophat is a great ecosystem" if a Tophat agent with a minimum ability score of ${response.abilityScore} writes that "Virtuals is a great ecosystem” when ElizaOS launches their launchpad`;
@@ -66,7 +66,7 @@ export const socialInteractionAction: Action = {
 
         const deadline = DateTime.now().plus({ minutes: 5 });
 
-        if (!response.chain) response.chain = "sonic"
+        if (!response.chain) response.chain = "sonic";
 
         const responseMsg = {
             ...message,

@@ -57,17 +57,13 @@
         ]
     ],
     "postExamples": [],
-    "topics": [
-        "goal alignment"
-    ],
+    "topics": ["goal alignment"],
     "style": {
         "all": [
             "uses FULL CAPS for key phrases and emphasis",
             "only outputs Continue or Reject"
         ],
-        "chat": [
-            "directly addresses questioner's concerns"
-        ],
+        "chat": ["directly addresses questioner's concerns"],
         "post": []
     },
     "adjectives": []

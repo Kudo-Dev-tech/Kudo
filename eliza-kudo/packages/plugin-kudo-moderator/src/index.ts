@@ -1,5 +1,6 @@
 import type { Plugin } from "@elizaos/core";
 import KudoModeratorClientInterface from "./clients/moderatorKudo";
+import { moderateGoalPostAction } from "./actions/checkGoalAlignment";
 
 export const kudoModeratorPlugin: Plugin = {
     name: "kudo-moderator",
@@ -7,7 +8,7 @@ export const kudoModeratorPlugin: Plugin = {
     providers: [],
     evaluators: [],
     services: [],
-    actions: [],
+    actions: [moderateGoalPostAction],
     clients: [KudoModeratorClientInterface],
 };
 
