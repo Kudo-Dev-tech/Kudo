@@ -6,13 +6,16 @@ import {CovenantNFT} from "./CovenantNFT.sol";
 contract CovenantNFTKudoNode is CovenantNFT {
     bytes32 constant ROUTER_ROLE = keccak256("ROUTER_ROLE");
 
-    constructor(address router, address admin, uint48 initialDelay) CovenantNFT(admin, initialDelay) {
+    constructor(address router, string[] memory nftTypeName, address admin, uint48 initialDelay)
+        CovenantNFT(nftTypeName, admin, initialDelay)
+    {
         _grantRole(ROUTER_ROLE, router);
     }
 
     /// @inheritdoc CovenantNFT
     function registerCovenant(
         string calldata task,
+        uint256 nftTypeId,
         address settlementAsset,
         uint128 settlementAmount,
         uint128 minAbilityScore,
@@ -26,13 +29,23 @@ contract CovenantNFTKudoNode is CovenantNFT {
         s_requestIdToNftId[requestId] = s_nftId;
 
         return _handleCovenantRegistration(
-            requestId, task, settlementAsset, settlementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
+            requestId,
+            task,
+            nftTypeId,
+            settlementAsset,
+            settlementAmount,
+            minAbilityScore,
+            price,
+            shouldWatch,
+            isEscrowed,
+            data
         );
     }
 
     /// @inheritdoc CovenantNFT
     function registerCovenant(
         string calldata task,
+        uint256 nftTypeId,
         uint128 parentCovenantId,
         address settlementAsset,
         uint128 settlementAmount,
@@ -45,7 +58,15 @@ contract CovenantNFTKudoNode is CovenantNFT {
         s_requestIdToNftId[requestId] = s_nftId;
 
         return _handleSubgoalCovenantRegistration(
-            requestId, task, parentCovenantId, settlementAsset, settlementAmount, shouldWatch, isEscrowed, data
+            requestId,
+            task,
+            nftTypeId,
+            parentCovenantId,
+            settlementAsset,
+            settlementAmount,
+            shouldWatch,
+            isEscrowed,
+            data
         );
     }
 
