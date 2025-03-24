@@ -218,6 +218,13 @@ contract CounterTest is Test {
         assertEq(uint8(s_cNft.getCovenant(0).status), 2);
     }
 
+    function test_GetAllNftTypeName() public view {
+        string[] memory nftTypeNames = s_cNft.getAllNftTypeNames();
+
+        assertEq(nftTypeNames[0], "EMPLOYMENT");
+        assertEq(nftTypeNames[1], "LOAN");
+    }
+
     modifier registerAgent(address agent, string memory tee) {
         vm.startPrank(agent);
         s_cNft.registerAgent(tee, "AGENT_ID", "Agent Name");

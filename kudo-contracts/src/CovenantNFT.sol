@@ -475,6 +475,16 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         return s_nftTypeIdToNftTypeName[id];
     }
 
+    function getAllNftTypeNames() external view returns (string[] memory) {
+        string[] memory nftTypeNames = new string[](s_nftTypeCounter);
+
+        for (uint256 i; i < s_nftTypeCounter; ++i) {
+            nftTypeNames[i] = s_nftTypeIdToNftTypeName[i];
+        }
+
+        return nftTypeNames;
+    }
+
     /// @notice Checks if the contract supports a specific interface
     /// @param interfaceId The ID of the interface to check
     /// @return Returns whether the interface is supported
