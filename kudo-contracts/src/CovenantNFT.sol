@@ -234,19 +234,6 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
                 ) revert ConditionIsNotMet();
             }
 
-            address agentWallet = s_nftIdToCovenantData[nftId].agentWallet;
-
-            if (s_nftIdToCovenantData[nftId].isEscrowed) {
-                IERC20(s_nftIdToCovenantData[nftId].settlementDetail.settlementAsset).safeTransfer(
-                    ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementDetail.settlementAmount
-                );
-            } else {
-                //slither-disable-next-line arbitrary-send-erc20
-                IERC20(s_nftIdToCovenantData[nftId].settlementDetail.settlementAsset).safeTransferFrom(
-                    agentWallet, ownerOf(nftId), s_nftIdToCovenantData[nftId].settlementDetail.settlementAmount
-                );
-            }
-
             _burn(nftId);
         }
 
