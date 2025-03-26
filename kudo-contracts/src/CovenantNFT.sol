@@ -2,7 +2,7 @@
 pragma solidity 0.8.27;
 
 import {ERC721, IERC721, IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20, IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import {EnumerableMap} from "openzeppelin-contracts/contracts/utils/structs/EnumerableMap.sol";
 import {
@@ -124,6 +124,12 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         address owner;
         /// @notice Settlement data
         string settlementData;
+        /// @notice Settlement status
+        string settlementStatus;
+        /// @notice Array of subgoals agent
+        string[] subgoalAgents;
+        /// @notice
+        string parentGoalAgent;
         /// @notice Covenant NFT data
         CovenantData covenantData;
     }
@@ -131,6 +137,10 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     struct SettlementDetails {
         /// @notice The promised asset at settlement
         address settlementAsset;
+        /// @notice The promised asset decimals
+        uint8 settlementAssetDecimals;
+        /// @notice The promised asset symbol
+        string settlementAssetSymbol;
         /// @notice The promised asset amount at settlement
         uint128 settlementAmount;
     }
@@ -431,14 +441,29 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param nftId The ID of the target NFT for retrieving covenant details
     /// @return CovenantDetails Details of specific NFT
     function getCovenantDetails(uint256 nftId) public view returns (CovenantDetails memory) {
+        string[] memory subgoalsAgents = new string[](s_nftIdToCovenantData[nftId].subgoalsId.length);
+        for (uint256 i; i < s_nftIdToCovenantData[nftId].subgoalsId.length; ++i) {
+            subgoalsAgents[i] =
+                s_agentDetails[s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].subgoalsId[i]].agentWallet].agentName;
+        }
+
         CovenantDetails memory data = CovenantDetails({
             nftId: nftId,
             agentName: s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].agentName,
             agentId: s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].agentId,
             owner: _ownerOf(nftId),
             settlementData: s_nftSettlementData[nftId],
+            settlementStatus: uint8(s_nftIdToCovenantData[nftId].status) == 1 ? "Settled" : "Pending",
+            subgoalAgents: subgoalsAgents,
+            parentGoalAgent: s_agentDetails[s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].parentGoalId].agentWallet]
+                .agentName,
             covenantData: s_nftIdToCovenantData[nftId]
         });
+
+        data.covenantData.settlementDetail.settlementAssetDecimals =
+            IERC20Metadata(data.covenantData.settlementDetail.settlementAsset).decimals();
+        data.covenantData.settlementDetail.settlementAssetSymbol =
+            IERC20Metadata(data.covenantData.settlementDetail.settlementAsset).symbol();
 
         return data;
     }
@@ -449,13 +474,27 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         CovenantDetails[] memory data = new CovenantDetails[](s_nftId);
 
         for (uint256 i; i < s_nftId; ++i) {
+            string[] memory subgoalsAgents = new string[](s_nftIdToCovenantData[i].subgoalsId.length);
+            for (uint256 u; u < s_nftIdToCovenantData[i].subgoalsId.length; ++u) {
+                subgoalsAgents[u] =
+                    s_agentDetails[s_nftIdToCovenantData[s_nftIdToCovenantData[i].subgoalsId[u]].agentWallet].agentName;
+            }
+
             address agentWallet = s_nftIdToCovenantData[i].agentWallet;
             data[i].nftId = i;
             data[i].agentName = s_agentDetails[agentWallet].agentName;
             data[i].agentId = s_agentDetails[agentWallet].agentId;
             data[i].owner = _ownerOf(i);
             data[i].settlementData = s_nftSettlementData[i];
+            data[i].settlementStatus = uint8(s_nftIdToCovenantData[i].status) == 1 ? "Settled" : "Pending";
+            data[i].subgoalAgents = subgoalsAgents;
+            data[i].parentGoalAgent =
+                s_agentDetails[s_nftIdToCovenantData[s_nftIdToCovenantData[i].parentGoalId].agentWallet].agentName;
             data[i].covenantData = s_nftIdToCovenantData[i];
+            data[i].covenantData.settlementDetail.settlementAssetDecimals =
+                IERC20Metadata(data[i].covenantData.settlementDetail.settlementAsset).decimals();
+            data[i].covenantData.settlementDetail.settlementAssetSymbol =
+                IERC20Metadata(data[i].covenantData.settlementDetail.settlementAsset).symbol();
         }
 
         return data;
