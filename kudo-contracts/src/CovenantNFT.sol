@@ -29,7 +29,8 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Covenant NFT id counter
     uint256 internal s_nftId;
 
-    uint256 s_nftTypeCounter;
+    /// @notice NFT Type counter
+    uint256 private s_nftTypeCounter;
 
     /// @notice Holds every agents id
     EnumerableSet.AddressSet s_agents;
@@ -475,6 +476,8 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         return s_nftTypeIdToNftTypeName[id];
     }
 
+    /// @notice Retrieves all NFT type names.
+    /// @return Array of NFT type names
     function getAllNftTypeNames() external view returns (string[] memory) {
         string[] memory nftTypeNames = new string[](s_nftTypeCounter);
 
