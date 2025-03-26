@@ -50,6 +50,9 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Maps an NFT type ID to its corresponding NFT type name
     mapping(uint256 nftType => string nftTypeName) private s_nftTypeIdToNftTypeName;
 
+    /// @notice Stores nft type name status
+    mapping(string nftTypeName => bool nftTypeNameStatus) private s_nftTypeNameStatus;
+
     /// @notice Emitted when new agent is registered
     /// @param agentWallet Agent registered wallet address
     /// @param agentName Agent registered name
@@ -72,6 +75,11 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param status The new status of the covenant (IN_PROGRESS, COMPLETED, or FAILED)
     event CovenantStatusSet(uint256 indexed nftId, CovenantStatus status);
 
+    /// @notice Emitted when the NFT Type is set
+    /// @param nftTypeId  The nft type id
+    /// @param nftTypeName Nft type name
+    event NftTypeNameSet(uint256 indexed nftTypeId, string nftTypeName);
+
     /// @notice Thrown when the caller is not an authorized agent
     error AccessForbidden();
 
@@ -80,6 +88,9 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
     /// @notice Thrown when a required condition is not met
     error ConditionIsNotMet();
+
+    /// @notice Thrown when a nft type name is already added
+    error NftTypeExist();
 
     /// @notice Covenant NFT details
     struct CovenantData {
@@ -177,6 +188,17 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param nftTypeName An array of NFT type names to be added
     function addNftType(string[] memory nftTypeName) external onlyRole(DEFAULT_ADMIN_ROLE) {
         _addNftType(nftTypeName);
+    }
+
+    /// @notice Update NFT type name based on the NFT type id
+    /// @param id NFT Type id
+    /// @param nftTypeName New NFT type name
+    function setNftTypeName(uint256 id, string memory nftTypeName) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        delete s_nftTypeNameStatus[s_nftTypeIdToNftTypeName[id]];
+        s_nftTypeIdToNftTypeName[id] = nftTypeName;
+        s_nftTypeNameStatus[nftTypeName] = true;
+
+        emit NftTypeNameSet(id, nftTypeName);
     }
 
     /// @notice Allows user to purchase Covenant NFT
@@ -388,7 +410,12 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param nftTypeName An array of NFT type names to be added
     function _addNftType(string[] memory nftTypeName) internal {
         for (uint256 i; i < nftTypeName.length; ++i) {
+            if (s_nftTypeNameStatus[nftTypeName[i]]) revert NftTypeExist();
+            s_nftTypeNameStatus[nftTypeName[i]] = true;
             s_nftTypeIdToNftTypeName[s_nftTypeCounter] = nftTypeName[i];
+
+            emit NftTypeNameSet(s_nftTypeCounter, nftTypeName[i]);
+
             ++s_nftTypeCounter;
         }
     }

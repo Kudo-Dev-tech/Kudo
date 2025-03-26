@@ -225,6 +225,15 @@ contract CounterTest is Test {
         assertEq(nftTypeNames[1], "LOAN");
     }
 
+    function test_SetNFTTypeName() public {
+        vm.prank(OWNER);
+        s_cNft.setNftTypeName(0, "TEST");
+
+        string[] memory nftTypeNames = s_cNft.getAllNftTypeNames();
+
+        assertEq(nftTypeNames[0], "TEST");
+    }
+
     modifier registerAgent(address agent, string memory tee) {
         vm.startPrank(agent);
         s_cNft.registerAgent(tee, "AGENT_ID", "Agent Name");
