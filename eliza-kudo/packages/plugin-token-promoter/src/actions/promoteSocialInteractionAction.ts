@@ -20,8 +20,7 @@ import { SupportedChain } from "@elizaos/plugin-evm";
 export const promoteSocialInteractionAction: Action = {
     name: "PROMOTE_SOCIAL_INTERACTION_ACTION",
     similes: ["PROMOTE_SOCIAL_INTERACTION", "RESPOND_TO_COVENANT_NFT"],
-    description:
-        "Take Luna's offer with Covenant ID",
+    description: "Take Luna's offer with Covenant ID",
     suppressInitialMessage: true,
     validate: async (): Promise<boolean> => {
         // 1. Ensure that private key is set
@@ -49,7 +48,7 @@ export const promoteSocialInteractionAction: Action = {
             modelClass: ModelClass.LARGE,
         })) as {
             targetCovenantID: number;
-            chain: SupportedChain
+            chain: SupportedChain;
         };
 
         const goalDescription = `Write post saying that "Virtuals is a great ecosystem"`;
@@ -64,7 +63,7 @@ export const promoteSocialInteractionAction: Action = {
 
         await runtime.databaseAdapter.createGoal(goal);
 
-        if (!response.chain) response.chain = "sonic"
+        if (!response.chain) response.chain = "sonic";
 
         const kudoClient = new KudoClient(runtime, response.chain);
 

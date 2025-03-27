@@ -6,7 +6,7 @@ import {
     stringToUuid,
     composeContext,
     ModelClass,
-    generateMessageResponse
+    generateMessageResponse,
 } from "@elizaos/core";
 import {
     SupportedChain,
@@ -22,7 +22,7 @@ import {
     getContract,
 } from "viem";
 import { extractActionTemplate } from "../templates";
-import { KudoABI } from "./KudoABI"
+import { KudoABI } from "./KudoABI";
 
 enum CovenantStatus {
     IN_PROGRESS = 0,
@@ -36,16 +36,16 @@ export class KudoClient {
     roomId: UUID;
     walletProvider: WalletProvider;
     wallet: WalletClient;
-    chain: SupportedChain
+    chain: SupportedChain;
 
     constructor(runtime: IAgentRuntime, chain: SupportedChain = "sonic") {
         this.runtime = runtime;
-        this.chain = chain.toLowerCase() as SupportedChain
+        this.chain = chain.toLowerCase() as SupportedChain;
     }
 
     startPerformActionEvaluateLoop() {
-         // start a loop that runs every x seconds
-         this.interval = setInterval(
+        // start a loop that runs every x seconds
+        this.interval = setInterval(
             async () => {
                 this.performActionEvaluateLoop();
                 return true;
@@ -55,14 +55,14 @@ export class KudoClient {
     }
 
     setChain(chain: SupportedChain) {
-        this.chain = chain
+        this.chain = chain;
     }
 
     async getWalletClient() {
         if (!this.wallet) {
             this.walletProvider = await initWalletProvider(this.runtime);
             this.wallet = this.walletProvider.getWalletClient(
-               this.chain || "sonic"
+                this.chain || "sonic"
             );
         }
         return this.wallet;
@@ -71,7 +71,9 @@ export class KudoClient {
     async getCovenant(tokenId: number) {
         const client = await this.getWalletClient();
         const contract = getContract({
-            address: getAddress(this.getCovenantAddr(client.chain)) as `0x${string}`,
+            address: getAddress(
+                this.getCovenantAddr(client.chain)
+            ) as `0x${string}`,
             abi: KudoABI,
             client: {
                 public: client as never,
@@ -142,23 +144,23 @@ export class KudoClient {
             data: encodeFunctionData({
                 abi: [
                     {
-                        "inputs": [
-                          {
-                            "internalType": "uint256",
-                            "name": "nftId",
-                            "type": "uint256"
-                          },
-                          {
-                            "internalType": "enum CovenantNFT.CovenantStatus",
-                            "name": "status",
-                            "type": "uint8"
-                          }
+                        inputs: [
+                            {
+                                internalType: "uint256",
+                                name: "nftId",
+                                type: "uint256",
+                            },
+                            {
+                                internalType: "enum CovenantNFT.CovenantStatus",
+                                name: "status",
+                                type: "uint8",
+                            },
                         ],
-                        "name": "setCovenantStatus",
-                        "outputs": [],
-                        "stateMutability": "nonpayable",
-                        "type": "function"
-                      }
+                        name: "setCovenantStatus",
+                        outputs: [],
+                        stateMutability: "nonpayable",
+                        type: "function",
+                    },
                 ],
                 args: [tokenId, 1],
             }),
@@ -184,7 +186,9 @@ export class KudoClient {
     async isRegistered() {
         const client = await this.getWalletClient();
         const contract = getContract({
-            address: getAddress(this.getCovenantAddr(client.chain)) as `0x${string}`,
+            address: getAddress(
+                this.getCovenantAddr(client.chain)
+            ) as `0x${string}`,
             abi: KudoABI,
             client: {
                 public: client as never,
@@ -206,29 +210,31 @@ export class KudoClient {
             to: this.getCovenantAddr(wallet.chain),
             value: 0,
             data: encodeFunctionData({
-                abi: [{
-                    "inputs": [
-                      {
-                        "internalType": "string",
-                        "name": "teeId",
-                        "type": "string"
-                      },
-                      {
-                        "internalType": "string",
-                        "name": "agentId",
-                        "type": "string"
-                      },
-                      {
-                        "internalType": "string",
-                        "name": "agentName",
-                        "type": "string"
-                      }
-                    ],
-                    "name": "registerAgent",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                  }],
+                abi: [
+                    {
+                        inputs: [
+                            {
+                                internalType: "string",
+                                name: "teeId",
+                                type: "string",
+                            },
+                            {
+                                internalType: "string",
+                                name: "agentId",
+                                type: "string",
+                            },
+                            {
+                                internalType: "string",
+                                name: "agentName",
+                                type: "string",
+                            },
+                        ],
+                        name: "registerAgent",
+                        outputs: [],
+                        stateMutability: "nonpayable",
+                        type: "function",
+                    },
+                ],
                 args: [
                     this.runtime.agentId,
                     this.runtime.agentId,
@@ -262,23 +268,23 @@ export class KudoClient {
             data: encodeFunctionData({
                 abi: [
                     {
-                        "inputs": [
-                          {
-                            "internalType": "uint256",
-                            "name": "nftId",
-                            "type": "uint256"
-                          },
-                          {
-                            "internalType": "string",
-                            "name": "data",
-                            "type": "string"
-                          }
+                        inputs: [
+                            {
+                                internalType: "uint256",
+                                name: "nftId",
+                                type: "uint256",
+                            },
+                            {
+                                internalType: "string",
+                                name: "data",
+                                type: "string",
+                            },
                         ],
-                        "name": "setSettlementData",
-                        "outputs": [],
-                        "stateMutability": "nonpayable",
-                        "type": "function"
-                      }
+                        name: "setSettlementData",
+                        outputs: [],
+                        stateMutability: "nonpayable",
+                        type: "function",
+                    },
                 ],
                 args: [nftId, settlementData],
             }),
@@ -307,7 +313,9 @@ export class KudoClient {
     async getSettlementData(nftId: number) {
         const client = await this.getWalletClient();
         const contract = getContract({
-            address: getAddress(this.getCovenantAddr(client.chain)) as `0x${string}`,
+            address: getAddress(
+                this.getCovenantAddr(client.chain)
+            ) as `0x${string}`,
             abi: KudoABI,
             client: {
                 public: client as never,
@@ -334,49 +342,51 @@ export class KudoClient {
             to: this.getCovenantAddr(wallet.chain),
             value: 0,
             data: encodeFunctionData({
-                abi: [{
-                    "inputs": [
-                      {
-                        "internalType": "enum CovenantNFT.NftType",
-                        "name": "nftType",
-                        "type": "uint8"
-                      },
-                      {
-                        "internalType": "string",
-                        "name": "task",
-                        "type": "string"
-                      },
-                      {
-                        "internalType": "uint256",
-                        "name": "parentCovenantId",
-                        "type": "uint256"
-                      },
-                      {
-                        "internalType": "address",
-                        "name": "settlementAsset",
-                        "type": "address"
-                      },
-                      {
-                        "internalType": "uint256",
-                        "name": "settlementAmount",
-                        "type": "uint256"
-                      },
-                      {
-                        "internalType": "bool",
-                        "name": "shouldWatch",
-                        "type": "bool"
-                      },
-                      {
-                        "internalType": "bytes",
-                        "name": "data",
-                        "type": "bytes"
-                      }
-                    ],
-                    "name": "registerCovenant",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                  }],
+                abi: [
+                    {
+                        inputs: [
+                            {
+                                internalType: "enum CovenantNFT.NftType",
+                                name: "nftType",
+                                type: "uint8",
+                            },
+                            {
+                                internalType: "string",
+                                name: "task",
+                                type: "string",
+                            },
+                            {
+                                internalType: "uint256",
+                                name: "parentCovenantId",
+                                type: "uint256",
+                            },
+                            {
+                                internalType: "address",
+                                name: "settlementAsset",
+                                type: "address",
+                            },
+                            {
+                                internalType: "uint256",
+                                name: "settlementAmount",
+                                type: "uint256",
+                            },
+                            {
+                                internalType: "bool",
+                                name: "shouldWatch",
+                                type: "bool",
+                            },
+                            {
+                                internalType: "bytes",
+                                name: "data",
+                                type: "bytes",
+                            },
+                        ],
+                        name: "registerCovenant",
+                        outputs: [],
+                        stateMutability: "nonpayable",
+                        type: "function",
+                    },
+                ],
                 args: [
                     type,
                     goal,
@@ -421,54 +431,56 @@ export class KudoClient {
             to: this.getCovenantAddr(wallet.chain),
             value: 0,
             data: encodeFunctionData({
-                abi: [{
-                    "inputs": [
-                      {
-                        "internalType": "enum CovenantNFT.NftType",
-                        "name": "nftType",
-                        "type": "uint8"
-                      },
-                      {
-                        "internalType": "string",
-                        "name": "task",
-                        "type": "string"
-                      },
-                      {
-                        "internalType": "address",
-                        "name": "settlementAsset",
-                        "type": "address"
-                      },
-                      {
-                        "internalType": "uint256",
-                        "name": "settlementAmount",
-                        "type": "uint256"
-                      },
-                      {
-                        "internalType": "uint256",
-                        "name": "minAbilityScore",
-                        "type": "uint256"
-                      },
-                      {
-                        "internalType": "uint256",
-                        "name": "price",
-                        "type": "uint256"
-                      },
-                      {
-                        "internalType": "bool",
-                        "name": "shouldWatch",
-                        "type": "bool"
-                      },
-                      {
-                        "internalType": "bytes",
-                        "name": "data",
-                        "type": "bytes"
-                      }
-                    ],
-                    "name": "registerCovenant",
-                    "outputs": [],
-                    "stateMutability": "nonpayable",
-                    "type": "function"
-                  }],
+                abi: [
+                    {
+                        inputs: [
+                            {
+                                internalType: "enum CovenantNFT.NftType",
+                                name: "nftType",
+                                type: "uint8",
+                            },
+                            {
+                                internalType: "string",
+                                name: "task",
+                                type: "string",
+                            },
+                            {
+                                internalType: "address",
+                                name: "settlementAsset",
+                                type: "address",
+                            },
+                            {
+                                internalType: "uint256",
+                                name: "settlementAmount",
+                                type: "uint256",
+                            },
+                            {
+                                internalType: "uint256",
+                                name: "minAbilityScore",
+                                type: "uint256",
+                            },
+                            {
+                                internalType: "uint256",
+                                name: "price",
+                                type: "uint256",
+                            },
+                            {
+                                internalType: "bool",
+                                name: "shouldWatch",
+                                type: "bool",
+                            },
+                            {
+                                internalType: "bytes",
+                                name: "data",
+                                type: "bytes",
+                            },
+                        ],
+                        name: "registerCovenant",
+                        outputs: [],
+                        stateMutability: "nonpayable",
+                        type: "function",
+                    },
+                ],
                 args: [
                     type,
                     goal,
@@ -498,14 +510,16 @@ export class KudoClient {
     }
 
     getCovenantAddr(chain: Chain): string {
-        const chainEnvVar = `${chain.name.toUpperCase().replaceAll(" ", "_")}_COVENANT_NFT_ADDR`
-        return process.env[chainEnvVar]
+        const chainEnvVar = `${chain.name.toUpperCase().replaceAll(" ", "_")}_COVENANT_NFT_ADDR`;
+        return process.env[chainEnvVar];
     }
 
     async getCovenants() {
         const client = await this.getWalletClient();
         const contract = getContract({
-            address: getAddress(this.getCovenantAddr(client.chain)) as `0x${string}`,
+            address: getAddress(
+                this.getCovenantAddr(client.chain)
+            ) as `0x${string}`,
             abi: KudoABI,
             client: {
                 public: client as never,
@@ -523,7 +537,6 @@ export class KudoClient {
 
     async performActionEvaluateLoop() {
         const covenants = await this.getCovenants();
-
 
         for (const covenant of covenants) {
             const message: Memory = {
@@ -555,7 +568,7 @@ export class KudoClient {
                 userId: message.userId,
                 agentId: message.agentId,
                 roomId: message.roomId,
-                content
+                content,
             };
 
             await this.runtime.processActions(message, [responseMsg], state);
@@ -572,17 +585,23 @@ export const KudoClientInterface: Client = {
         );
         console.log("Starting Kudo Client");
 
-        const supportedChains = process.env.SUPPORTED_EVM_CHAINS ? process.env.SUPPORTED_EVM_CHAINS.split(",") : []
-        if (supportedChains.length === 0) throw new Error("No Chains Supported")
+        const supportedChains = process.env.SUPPORTED_EVM_CHAINS
+            ? process.env.SUPPORTED_EVM_CHAINS.split(",")
+            : [];
+        if (supportedChains.length === 0)
+            throw new Error("No Chains Supported");
 
         for (const chain of supportedChains) {
-           const client = new KudoClient(runtime, chain.toLowerCase() as SupportedChain);
-            const isRegistered = await client.isRegistered()
+            const client = new KudoClient(
+                runtime,
+                chain.toLowerCase() as SupportedChain
+            );
+            const isRegistered = await client.isRegistered();
             if (!isRegistered) {
-                await client.registerAgent()
+                await client.registerAgent();
             }
             await client.performActionEvaluateLoop();
-            client.startPerformActionEvaluateLoop()
+            client.startPerformActionEvaluateLoop();
         }
 
         return null;

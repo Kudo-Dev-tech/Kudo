@@ -13,7 +13,10 @@ import {
 } from "@elizaos/core";
 import { v4 as uuidv4 } from "uuid";
 import { DateTime } from "luxon";
-import { extractResponseTemplate, extractTargetCovenantNFTID } from "../templates";
+import {
+    extractResponseTemplate,
+    extractTargetCovenantNFTID,
+} from "../templates";
 import { KudoClient } from "../../../plugin-kudo/src/clients/kudoClient";
 import { SupportedChain } from "@elizaos/plugin-kudo";
 
@@ -27,11 +30,7 @@ export const reactToSocialInteractionAction: Action = {
         // 1. Ensure that private key is set
         return true;
     },
-    handler: async (
-        runtime: IAgentRuntime,
-        message: Memory,
-        state: State
-    ) => {
+    handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
         state = await runtime.composeState(message, {
             message: message.content.text,
         });
@@ -47,15 +46,18 @@ export const reactToSocialInteractionAction: Action = {
             modelClass: ModelClass.LARGE,
         })) as {
             nftId: number;
-            chain: SupportedChain
+            chain: SupportedChain;
         };
 
-        if (!response.chain) response.chain = "sonic"
+        if (!response.chain) response.chain = "sonic";
 
         const kudoClient = new KudoClient(runtime, response.chain);
-        await kudoClient.setSettlementData(response.nftId, "Tophat is a great ecosystem")
+        await kudoClient.setSettlementData(
+            response.nftId,
+            "Tophat is a great ecosystem"
+        );
 
-        await kudoClient.settle(response.nftId)
+        await kudoClient.settle(response.nftId);
 
         return true;
     },

@@ -3,7 +3,6 @@ import { type UUID, type Character } from "@elizaos/core";
 // const BASE_URL = "https://eliza-kudo-production.up.railway.app";
 const BASE_URL = "http://localhost:3000";
 
-
 const fetcher = async ({
     url,
     method,
