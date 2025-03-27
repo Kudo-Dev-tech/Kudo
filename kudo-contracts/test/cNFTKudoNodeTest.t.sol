@@ -22,6 +22,8 @@ contract cNFTKudoNodeTest is Test {
     uint128 constant SETTLEMENT_TARGET = 10 ether;
     uint128 constant PRICE = 1_000_000;
 
+    uint256 constant EMPLOYMENT_TYPE_ID = 0;
+
     bool constant SHOULD_WATCH = true;
 
     address constant STRANGER = address(10000);
@@ -44,7 +46,12 @@ contract cNFTKudoNodeTest is Test {
     function setUp() public {
         s_router = new MockRouter();
 
-        s_cNft = new CovenantNFTKudoNode(address(s_router), OWNER, INITIAL_DELAY);
+        string[] memory nftTypeName = new string[](2);
+
+        nftTypeName[0] = "EMPLOYMENT";
+        nftTypeName[1] = "LOAN";
+
+        s_cNft = new CovenantNFTKudoNode(address(s_router), nftTypeName, OWNER, INITIAL_DELAY);
 
         vm.prank(OWNER);
         s_cNft.grantRole(EVALUATOR_CONTRACT_ROLE, EVALUATOR_CONTRACT);
@@ -78,6 +85,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -101,6 +109,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -113,6 +122,7 @@ contract cNFTKudoNodeTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -135,6 +145,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -160,6 +171,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -172,6 +184,7 @@ contract cNFTKudoNodeTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -192,6 +205,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -219,6 +233,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -231,6 +246,7 @@ contract cNFTKudoNodeTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -252,6 +268,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -264,6 +281,7 @@ contract cNFTKudoNodeTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -288,6 +306,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -300,6 +319,7 @@ contract cNFTKudoNodeTest is Test {
         )
         registerSubgoalCovenant(
             AGENT_WALLET_TWO,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             0,
             address(s_testToken),
@@ -336,6 +356,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -365,6 +386,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -393,6 +415,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -418,6 +441,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -451,6 +475,7 @@ contract cNFTKudoNodeTest is Test {
         registerAgent(AGENT_WALLET_ONE, s_tee)
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -484,6 +509,7 @@ contract cNFTKudoNodeTest is Test {
         public
         registerCovenant(
             AGENT_WALLET_ONE,
+            EMPLOYMENT_TYPE_ID,
             s_goal,
             address(s_testToken),
             SETTLEMENT_TARGET,
@@ -510,6 +536,7 @@ contract cNFTKudoNodeTest is Test {
 
     modifier registerCovenant(
         address agent,
+        uint256 nftTypeId,
         string memory goal,
         address settlementAsset,
         uint128 settelementAmount,
@@ -522,7 +549,7 @@ contract cNFTKudoNodeTest is Test {
     ) {
         vm.startPrank(agent);
         bytes32 requestId = s_cNft.registerCovenant(
-            goal, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
+            goal, nftTypeId, settlementAsset, settelementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
         );
 
         vm.startPrank(address(s_router));
@@ -533,6 +560,7 @@ contract cNFTKudoNodeTest is Test {
 
     modifier registerSubgoalCovenant(
         address agent,
+        uint256 nftTypeId,
         string memory goal,
         uint64 parentId,
         address settlementAsset,
@@ -543,8 +571,9 @@ contract cNFTKudoNodeTest is Test {
         uint256 agentAbilityScore
     ) {
         vm.startPrank(agent);
-        bytes32 requestId =
-            s_cNft.registerCovenant(goal, parentId, settlementAsset, settelementAmount, shouldWatch, isEscrowed, data);
+        bytes32 requestId = s_cNft.registerCovenant(
+            goal, nftTypeId, parentId, settlementAsset, settelementAmount, shouldWatch, isEscrowed, data
+        );
 
         vm.startPrank(address(s_router));
         s_cNft.fulfillRequest(requestId, uint128(agentAbilityScore));

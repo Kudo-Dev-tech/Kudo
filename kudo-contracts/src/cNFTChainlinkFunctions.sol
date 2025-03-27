@@ -31,10 +31,14 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
     /// @notice Chainlink functions subscription id
     uint64 s_subsId;
 
-    constructor(bytes32 donId, uint64 subsId, address router, address admin, uint48 initialDelay)
-        CovenantNFT(admin, initialDelay)
-        FunctionsClient(router)
-    {
+    constructor(
+        bytes32 donId,
+        uint64 subsId,
+        address router,
+        string[] memory nftTypeName,
+        address admin,
+        uint48 initialDelay
+    ) CovenantNFT(nftTypeName, admin, initialDelay) FunctionsClient(router) {
         s_router = router;
         i_donID = donId;
         s_subsId = subsId;
@@ -43,6 +47,7 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
     /// @inheritdoc CovenantNFT
     function registerCovenant(
         string calldata task,
+        uint256 nftTypeId,
         address settlementAsset,
         uint128 settlementAmount,
         uint128 minAbilityScore,
@@ -59,13 +64,23 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         bytes32 requestId = sendRequest(s_subsId, input);
 
         return _handleCovenantRegistration(
-            requestId, task, settlementAsset, settlementAmount, minAbilityScore, price, shouldWatch, isEscrowed, data
+            requestId,
+            task,
+            nftTypeId,
+            settlementAsset,
+            settlementAmount,
+            minAbilityScore,
+            price,
+            shouldWatch,
+            isEscrowed,
+            data
         );
     }
 
     /// @inheritdoc CovenantNFT
     function registerCovenant(
         string calldata task,
+        uint256 nftTypeId,
         uint128 parentCovenantId,
         address settlementAsset,
         uint128 settlementAmount,
@@ -81,7 +96,15 @@ contract CovenantNFTCLFunctions is CovenantNFT, FunctionsClient {
         bytes32 requestId = sendRequest(s_subsId, input);
 
         return _handleSubgoalCovenantRegistration(
-            requestId, task, parentCovenantId, settlementAsset, settlementAmount, shouldWatch, isEscrowed, data
+            requestId,
+            task,
+            nftTypeId,
+            parentCovenantId,
+            settlementAsset,
+            settlementAmount,
+            shouldWatch,
+            isEscrowed,
+            data
         );
     }
 

@@ -27,7 +27,12 @@ contract DeployCNft is Script, Constants {
     function deployContract() public {
         vm.startBroadcast(deployerPrivateKey);
 
-        s_cNFT = new CovenantNFTKudoNode(ROUTER_ADDRESS, deployer, 60);
+        string[] memory nftTypeName = new string[](2);
+
+        nftTypeName[0] = "EMPLOYMENT";
+        nftTypeName[1] = "LOAN";
+
+        s_cNFT = new CovenantNFTKudoNode(ROUTER_ADDRESS, nftTypeName, deployer, 60);
 
         s_cNFT.registerAgent("Tee 101", "abc", "Agent One");
 
@@ -47,7 +52,8 @@ contract DeployCNft is Script, Constants {
         vm.startBroadcast(deployerPrivateKey);
 
         s_cNFT.registerCovenant(
-            "Post a short explaination of project A",
+            "Post a short explanation of project A",
+            0,
             USDC_ADDRESS,
             1_000_000,
             1 ether,

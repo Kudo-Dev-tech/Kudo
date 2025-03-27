@@ -2,7 +2,7 @@
 pragma solidity 0.8.27;
 
 import {ERC721, IERC721, IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20, IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {EnumerableSet} from "openzeppelin-contracts/contracts/utils/structs/EnumerableSet.sol";
 import {EnumerableMap} from "openzeppelin-contracts/contracts/utils/structs/EnumerableMap.sol";
 import {
@@ -29,6 +29,9 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Covenant NFT id counter
     uint256 internal s_nftId;
 
+    /// @notice NFT Type counter
+    uint256 private s_nftTypeCounter;
+
     /// @notice Holds every agents id
     EnumerableSet.AddressSet s_agents;
 
@@ -43,6 +46,12 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
     /// @notice Stores settlement data for a given Covenant NFT ID
     mapping(uint256 cNftId => string settlemenData) private s_nftSettlementData;
+
+    /// @notice Maps an NFT type ID to its corresponding NFT type name
+    mapping(uint256 nftType => string nftTypeName) private s_nftTypeIdToNftTypeName;
+
+    /// @notice Stores nft type name status
+    mapping(string nftTypeName => bool nftTypeNameStatus) private s_nftTypeNameStatus;
 
     /// @notice Emitted when new agent is registered
     /// @param agentWallet Agent registered wallet address
@@ -66,6 +75,11 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param status The new status of the covenant (IN_PROGRESS, COMPLETED, or FAILED)
     event CovenantStatusSet(uint256 indexed nftId, CovenantStatus status);
 
+    /// @notice Emitted when the NFT Type is set
+    /// @param nftTypeId  The nft type id
+    /// @param nftTypeName Nft type name
+    event NftTypeNameSet(uint256 indexed nftTypeId, string nftTypeName);
+
     /// @notice Thrown when the caller is not an authorized agent
     error AccessForbidden();
 
@@ -75,12 +89,17 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @notice Thrown when a required condition is not met
     error ConditionIsNotMet();
 
+    /// @notice Thrown when a nft type name is already added
+    error NftTypeExist();
+
     /// @notice Covenant NFT details
     struct CovenantData {
         /// @notice Agent wallet address
         address agentWallet;
         /// @notice The current status of the covenant
         CovenantStatus status;
+        /// @notice The Covenant NFT Type
+        string nftType;
         /// @notice The description of the goal
         string goal;
         /// @notice The details of the goal
@@ -117,6 +136,12 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         address owner;
         /// @notice Settlement data
         string settlementData;
+        /// @notice Settlement status
+        string settlementStatus;
+        /// @notice Array of subgoals agent
+        string[] subgoalAgents;
+        /// @notice
+        string parentGoalAgent;
         /// @notice Covenant NFT data
         CovenantData covenantData;
     }
@@ -124,6 +149,10 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     struct SettlementDetails {
         /// @notice The promised asset at settlement
         address settlementAsset;
+        /// @notice The promised asset decimals
+        uint8 settlementAssetDecimals;
+        /// @notice The promised asset symbol
+        string settlementAssetSymbol;
         /// @notice The promised asset amount at settlement
         uint128 settlementAmount;
     }
@@ -140,10 +169,12 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         uint256[] taskId;
     }
 
-    constructor(address admin, uint48 initialDelay)
+    constructor(string[] memory nftTypeName, address admin, uint48 initialDelay)
         ERC721("Covenant NFT", "cNFT")
         AccessControlDefaultAdminRules(initialDelay, admin)
-    {}
+    {
+        _addNftType(nftTypeName);
+    }
 
     /// @notice Allows an agent to register themselves
     /// @param teeId TEE identifier of the agent
@@ -161,6 +192,23 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         if (status) {
             emit AgentSet(msg.sender, agentName, agentId, teeId);
         }
+    }
+
+    /// @notice Adds new NFT types
+    /// @param nftTypeName An array of NFT type names to be added
+    function addNftType(string[] memory nftTypeName) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _addNftType(nftTypeName);
+    }
+
+    /// @notice Update NFT type name based on the NFT type id
+    /// @param id NFT Type id
+    /// @param nftTypeName New NFT type name
+    function setNftTypeName(uint256 id, string memory nftTypeName) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        delete s_nftTypeNameStatus[s_nftTypeIdToNftTypeName[id]];
+        s_nftTypeIdToNftTypeName[id] = nftTypeName;
+        s_nftTypeNameStatus[nftTypeName] = true;
+
+        emit NftTypeNameSet(id, nftTypeName);
     }
 
     /// @notice Allows user to purchase Covenant NFT
@@ -182,6 +230,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param data Additional encoded data related to the covenant
     function registerCovenant(
         string calldata task,
+        uint256 nftType,
         address settlementAsset,
         uint128 settlementAmount,
         uint128 minAbilityScore,
@@ -200,6 +249,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param data Additional encoded data related to the covenant
     function registerCovenant(
         string calldata task,
+        uint256 nftType,
         uint128 parentCovenantId,
         address settlementAsset,
         uint128 settlementAmount,
@@ -240,9 +290,23 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         emit CovenantStatusSet(nftId, status);
     }
 
+    /// @notice Handles the registration of a Covenant
+    /// @dev Processes covenant-related data and determines settlement parameters
+    /// @param requestId The unique identifier for the request
+    /// @param task The task associated with the subgoal
+    /// @param nftTypeId The NFT type ID
+    /// @param settlementAsset The asset used for settlement
+    /// @param settlementAmount The amount required for settlement
+    /// @param minAbilityScore The minimum ability score to take the Covenant NFT task
+    /// @param price The purchase price for the Covenant NFT
+    /// @param shouldWatch Indicates whether the covenant should be monitored by evaluator agent
+    /// @param isEscrowed Specifies if the settlement amount is escrowed
+    /// @param data Additional data related to the Covenant NFT
+    /// @return bytes32 Id for API call request
     function _handleCovenantRegistration(
         bytes32 requestId,
         string calldata task,
+        uint256 nftTypeId,
         address settlementAsset,
         uint128 settlementAmount,
         uint128 minAbilityScore,
@@ -254,6 +318,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         s_requestIdToNftId[requestId] = s_nftId;
 
         s_nftIdToCovenantData[s_nftId].agentWallet = msg.sender;
+        s_nftIdToCovenantData[s_nftId].nftType = s_nftTypeIdToNftTypeName[nftTypeId];
         s_nftIdToCovenantData[s_nftId].goal = task;
         s_nftIdToCovenantData[s_nftId].parentGoalId = uint64(s_nftId);
         s_nftIdToCovenantData[s_nftId].settlementDetail.settlementAsset = settlementAsset;
@@ -276,9 +341,22 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         return requestId;
     }
 
+    /// @notice Handles the registration of a subgoal covenant.
+    /// @dev Processes covenant-related data and determines settlement parameters.
+    /// @param requestId The unique identifier for the request
+    /// @param task The task associated with the subgoal
+    /// @param nftTypeId The NFT type ID
+    /// @param parentCovenantId The parent covenant ID
+    /// @param settlementAsset The asset used for settlement
+    /// @param settlementAmount The amount required for settlement
+    /// @param shouldWatch Indicates whether the covenant should be monitored by evaluator agent
+    /// @param isEscrowed Specifies if the settlement amount is escrowed
+    /// @param data Additional data related to the Covenant NFT
+    /// @return bytes32 Id for API call request
     function _handleSubgoalCovenantRegistration(
         bytes32 requestId,
         string calldata task,
+        uint256 nftTypeId,
         uint128 parentCovenantId,
         address settlementAsset,
         uint128 settlementAmount,
@@ -290,6 +368,7 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
 
         s_nftIdToCovenantData[s_nftId].agentWallet = msg.sender;
         s_nftIdToCovenantData[s_nftId].status = CovenantStatus.IN_PROGRESS;
+        s_nftIdToCovenantData[s_nftId].nftType = s_nftTypeIdToNftTypeName[nftTypeId];
         s_nftIdToCovenantData[s_nftId].goal = task;
         s_nftIdToCovenantData[s_nftId].parentGoalId = uint64(parentCovenantId);
         s_nftIdToCovenantData[s_nftId].settlementDetail.settlementAsset = settlementAsset;
@@ -307,6 +386,10 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         return requestId;
     }
 
+    /// @notice Process a callback with ability score and NFT ID.
+    /// @dev Handles logic related to ability scores and specific NFTs.
+    /// @param abilityScore The ability score associated with the NFT.
+    /// @param nftId The unique identifier of the NFT.
     function _processCallback(uint128 abilityScore, uint256 nftId) internal {
         if (abilityScore < s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].parentGoalId].minAbilityScore) {
             _burn(nftId);
@@ -318,6 +401,20 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
             s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].taskId.push(nftId);
         }
         _transfer(address(this), s_nftIdToCovenantData[nftId].agentWallet, nftId);
+    }
+
+    /// @notice Adds new NFT types
+    /// @param nftTypeName An array of NFT type names to be added
+    function _addNftType(string[] memory nftTypeName) internal {
+        for (uint256 i; i < nftTypeName.length; ++i) {
+            if (s_nftTypeNameStatus[nftTypeName[i]]) revert NftTypeExist();
+            s_nftTypeNameStatus[nftTypeName[i]] = true;
+            s_nftTypeIdToNftTypeName[s_nftTypeCounter] = nftTypeName[i];
+
+            emit NftTypeNameSet(s_nftTypeCounter, nftTypeName[i]);
+
+            ++s_nftTypeCounter;
+        }
     }
 
     /// @notice Checks if an agent is registered
@@ -359,14 +456,29 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @param nftId The ID of the target NFT for retrieving covenant details
     /// @return CovenantDetails Details of specific NFT
     function getCovenantDetails(uint256 nftId) public view returns (CovenantDetails memory) {
+        string[] memory subgoalsAgents = new string[](s_nftIdToCovenantData[nftId].subgoalsId.length);
+        for (uint256 i; i < s_nftIdToCovenantData[nftId].subgoalsId.length; ++i) {
+            subgoalsAgents[i] =
+                s_agentDetails[s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].subgoalsId[i]].agentWallet].agentName;
+        }
+
         CovenantDetails memory data = CovenantDetails({
             nftId: nftId,
             agentName: s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].agentName,
             agentId: s_agentDetails[s_nftIdToCovenantData[nftId].agentWallet].agentId,
             owner: _ownerOf(nftId),
             settlementData: s_nftSettlementData[nftId],
+            settlementStatus: uint8(s_nftIdToCovenantData[nftId].status) == 1 ? "Settled" : "Pending",
+            subgoalAgents: subgoalsAgents,
+            parentGoalAgent: s_agentDetails[s_nftIdToCovenantData[s_nftIdToCovenantData[nftId].parentGoalId].agentWallet]
+                .agentName,
             covenantData: s_nftIdToCovenantData[nftId]
         });
+
+        data.covenantData.settlementDetail.settlementAssetDecimals =
+            IERC20Metadata(data.covenantData.settlementDetail.settlementAsset).decimals();
+        data.covenantData.settlementDetail.settlementAssetSymbol =
+            IERC20Metadata(data.covenantData.settlementDetail.settlementAsset).symbol();
 
         return data;
     }
@@ -377,13 +489,27 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
         CovenantDetails[] memory data = new CovenantDetails[](s_nftId);
 
         for (uint256 i; i < s_nftId; ++i) {
+            string[] memory subgoalsAgents = new string[](s_nftIdToCovenantData[i].subgoalsId.length);
+            for (uint256 u; u < s_nftIdToCovenantData[i].subgoalsId.length; ++u) {
+                subgoalsAgents[u] =
+                    s_agentDetails[s_nftIdToCovenantData[s_nftIdToCovenantData[i].subgoalsId[u]].agentWallet].agentName;
+            }
+
             address agentWallet = s_nftIdToCovenantData[i].agentWallet;
             data[i].nftId = i;
             data[i].agentName = s_agentDetails[agentWallet].agentName;
             data[i].agentId = s_agentDetails[agentWallet].agentId;
             data[i].owner = _ownerOf(i);
             data[i].settlementData = s_nftSettlementData[i];
+            data[i].settlementStatus = uint8(s_nftIdToCovenantData[i].status) == 1 ? "Settled" : "Pending";
+            data[i].subgoalAgents = subgoalsAgents;
+            data[i].parentGoalAgent =
+                s_agentDetails[s_nftIdToCovenantData[s_nftIdToCovenantData[i].parentGoalId].agentWallet].agentName;
             data[i].covenantData = s_nftIdToCovenantData[i];
+            data[i].covenantData.settlementDetail.settlementAssetDecimals =
+                IERC20Metadata(data[i].covenantData.settlementDetail.settlementAsset).decimals();
+            data[i].covenantData.settlementDetail.settlementAssetSymbol =
+                IERC20Metadata(data[i].covenantData.settlementDetail.settlementAsset).symbol();
         }
 
         return data;
@@ -394,6 +520,25 @@ abstract contract CovenantNFT is ERC721, AccessControlDefaultAdminRules {
     /// @return CovenantData Covenant NFT details
     function getCovenant(uint256 nftId) external view returns (CovenantData memory) {
         return s_nftIdToCovenantData[nftId];
+    }
+
+    /// @notice Retrieves the name of an NFT type based on its ID.
+    /// @param id The NFT type ID.
+    /// @return The name of the NFT type.
+    function getNftTypeName(uint256 id) external view returns (string memory) {
+        return s_nftTypeIdToNftTypeName[id];
+    }
+
+    /// @notice Retrieves all NFT type names.
+    /// @return Array of NFT type names
+    function getAllNftTypeNames() external view returns (string[] memory) {
+        string[] memory nftTypeNames = new string[](s_nftTypeCounter);
+
+        for (uint256 i; i < s_nftTypeCounter; ++i) {
+            nftTypeNames[i] = s_nftTypeIdToNftTypeName[i];
+        }
+
+        return nftTypeNames;
     }
 
     /// @notice Checks if the contract supports a specific interface
