@@ -13,10 +13,10 @@ import {
     State,
     composeContext,
     generateObjectDeprecated,
-    type Client,
     UUID,
     stringToUuid,
 } from "@elizaos/core";
+import {smartScraper} from 'scrapegraph-js';
 
 export const moderateGoalPostAction: Action = {
     name: "MODERATE",
@@ -26,44 +26,65 @@ export const moderateGoalPostAction: Action = {
         return true;
     },
     handler: async (runtime: IAgentRuntime, message: Memory) => {
-        console.log("Hello World! checkGoalAlignment");
         const data = (await publicClient.readContract({
-            address: "0x530BEba1A237a01f342199Bf0d3FC5FE628e4cB8",
+            address: process.env.ARBISCAN_ADDRESS as `0x${string}`,
             abi: moderatorKudoABI,
             functionName: "getCovenantDetails",
             args: ["1"],
         })) as any;
 
-        console.log(data);
-
         // Get Covenant Details will get the goal and post
 
-        const covPost = data.settlementData;
-        const covGoal = data.covenantData.goal;
+        // Link to Post
+        const covPost = "https://x.com/HighyieldHarry/status/1902830412079988746" //data.settlementData;
+        const covGoal = "Go to the link to see if the there is a goal alignment for the following goal: 'Write a post about how out of touch Americans are." //data.covenantData.goal;
 
-        const state = await runtime.composeState(message, {
-            post: covPost,
-            goal: covGoal,
-        });
+        // Post and Goal
+        //const covPost = "The ETH Token is really great."
+        //const covGoal = "Create a post promoting the ETH Token."
 
-        const context = composeContext({
-            state,
-            template: moderateGoalPostTemplate,
-        });
+        //Extract data
+        const covPostURL = covPost.match(/(https?:\/\/[^ ]*)/); // Extract URL
+        console.log("The extracted URL from given string is:- " + covPostURL);
 
-        const verdict = await generateObjectDeprecated({
-            runtime,
-            context,
-            modelClass: ModelClass.LARGE,
-        });
+        if (covPostURL === null) {
 
-        console.log(verdict);
+            const state = await runtime.composeState(message, {
+                post: covPost,
+                goal: covGoal,
+            });
 
-        // transmitVerdict
+            const context = composeContext({
+                state,
+                template: moderateGoalPostTemplate,
+            });
+
+            const response = await generateObjectDeprecated({
+                runtime,
+                context,
+                modelClass: ModelClass.LARGE,
+            });
+
+            console.log(response);
+
+            var goal_alignment = response.goal_alignment
+        } else {
+
+        const apiKey = process.env.SCRAPE_JS_API_KEY;
+        const websiteURL = covPostURL[0];
+        const prompt = covGoal
+        const response = await smartScraper(apiKey, websiteURL, prompt);
+        var goal_alignment = response.result.goal_alignment
+        console.log(response.result)
+        }
+
+        console.log(goal_alignment.result)
+
+        // setCovenantStatus
 
         const walletClient = createWalletClient({
             chain: arbitrum,
-            transport: http(process.env.ETHEREUM_PROVIDER_ARBITRUM as string),
+            transport: http(process.env.ETHEREUM_PROVIDER_ARBITRUM),
         });
 
         // Local Account
@@ -71,12 +92,18 @@ export const moderateGoalPostAction: Action = {
             process.env.PRIVATE_KEY as `0x${string}`
         );
 
+        if (goal_alignment === "Yes"){
+            var result = "1"
+        } else {
+            var result = "2"
+        }
+
         const { request } = await publicClient.simulateContract({
             account,
-            address: "0x530BEba1A237a01f342199Bf0d3FC5FE628e4cB8",
+            address: process.env.ARBISCAN_ADDRESS as `0x${string}`,
             abi: moderatorKudoABI,
             functionName: "setCovenantStatus",
-            args: ["1", "2"], // NFTID, Status (1 or 2) - Arguments: Have to be dynamically put in
+            args: ["1", result], // NFTID, Status (1 (Completed) or 2 (Fail) ) - Arguments: Have to be dynamically put in
         });
         await walletClient.writeContract(request);
     },

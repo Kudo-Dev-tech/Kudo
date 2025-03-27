@@ -9,7 +9,7 @@ import { Memory } from "@elizaos/core";
 export const publicClient = createPublicClient({
     chain: arbitrum,
     transport: http(
-        "https://arb-mainnet.g.alchemy.com/v2/Q5TxpTVf_JI2DtOAgZuy17s0Ln2HDrt7"
+        process.env.ETHEREUM_PROVIDER_ARBITRUM
     ),
 });
 
@@ -17,9 +17,9 @@ async function watchContractEvent(runtime: IAgentRuntime) {
     // Watch an Event
 
     const watcher = publicClient.watchContractEvent({
-        address: "0x530BEba1A237a01f342199Bf0d3FC5FE628e4cB8",
+        address: process.env.ARBISCAN_ADDRESS as `0x${string}`,
         abi: moderatorKudoABI,
-        onLogs: async (logs) => {
+        onLogs: async (logs) => { //Get nftID from here + Pass into moderator action
             const responseMsg: Memory = {
                 userId: runtime.agentId,
                 agentId: runtime.agentId,
