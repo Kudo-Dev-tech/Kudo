@@ -3,7 +3,10 @@ import { moderatorKudoABI } from "../clients/moderatorKudoABI";
 import { createPublicClient, http } from "viem";
 import { createWalletClient } from "viem";
 import { arbitrum } from "viem/chains";
-import { moderateGoalPostTemplate } from "../templates/index.ts";
+import {
+    moderateGoalPostTemplate,
+    moderateMessageFooter,
+} from "../templates/index.ts";
 import { privateKeyToAccount } from "viem/accounts";
 import {
     Action,
@@ -13,10 +16,13 @@ import {
     State,
     composeContext,
     generateObjectDeprecated,
-    UUID,
-    stringToUuid,
 } from "@elizaos/core";
-import {smartScraper} from 'scrapegraph-js';
+import { smartScraper } from "scrapegraph-js";
+
+enum CovenantStatus {
+    COMPLETED = 1,
+    FAILED = 2,
+}
 
 export const moderateGoalPostAction: Action = {
     name: "MODERATE",
@@ -25,85 +31,101 @@ export const moderateGoalPostAction: Action = {
     validate: async () => {
         return true;
     },
-    handler: async (runtime: IAgentRuntime, message: Memory) => {
+    handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
+        const { nftId } = (await generateObjectDeprecated({
+            runtime,
+            context: `
+                Determine the nftId to analyze based on the sentence below
+
+                ${message.content.text}
+
+                Output your response as a JSON as shown below
+
+                \`\`\`json
+                {
+                    "nftId": number
+                }
+                \`\`\`
+
+            `,
+            modelClass: ModelClass.LARGE,
+        })) as {
+            nftId: number;
+        };
+
+        console.log(`Checking goal alignment for NFT with ID ${nftId}`);
+
         const data = (await publicClient.readContract({
-            address: process.env.ARBISCAN_ADDRESS as `0x${string}`,
+            address: process.env
+                .ARBITRUM_ONE_COVENANT_NFT_ADDR as `0x${string}`,
             abi: moderatorKudoABI,
             functionName: "getCovenantDetails",
-            args: ["1"],
-        })) as any;
+            args: [nftId],
+        })) as {
+            settlementData: string;
+            covenantData: {
+                goal: string;
+            };
+        };
 
-        // Get Covenant Details will get the goal and post
-
-        // Link to Post
-        const covPost = "https://x.com/HighyieldHarry/status/1902830412079988746" //data.settlementData;
-        const covGoal = "Go to the link to see if the there is a goal alignment for the following goal: 'Write a post about how out of touch Americans are." //data.covenantData.goal;
-
-        // Post and Goal
-        //const covPost = "The ETH Token is really great."
-        //const covGoal = "Create a post promoting the ETH Token."
-
-        //Extract data
-        const covPostURL = covPost.match(/(https?:\/\/[^ ]*)/); // Extract URL
+        const covPostURL = data.settlementData.match(/(https?:\/\/[^ ]*)/);
         console.log("The extracted URL from given string is:- " + covPostURL);
 
-        if (covPostURL === null) {
+        let response = {
+            isAligned: false,
+        };
+        if (covPostURL) {
+            const smartScraperResponse = await smartScraper(
+                process.env.SCRAPE_JS_API_KEY,
+                covPostURL[0],
+                `Go to the link and check if the goal has been achieved or not.
 
-            const state = await runtime.composeState(message, {
-                post: covPost,
-                goal: covGoal,
-            });
+                Goal: ${data.covenantData.goal}
+                ` + moderateMessageFooter
+            );
 
+            response = smartScraperResponse.result;
+        } else {
             const context = composeContext({
-                state,
+                state: {
+                    ...state,
+                    post: data.settlementData,
+                    goal: data.covenantData.goal,
+                },
                 template: moderateGoalPostTemplate,
             });
 
-            const response = await generateObjectDeprecated({
+            response = await generateObjectDeprecated({
                 runtime,
                 context,
                 modelClass: ModelClass.LARGE,
             });
-
-            console.log(response);
-
-            var goal_alignment = response.goal_alignment
-        } else {
-
-        const apiKey = process.env.SCRAPE_JS_API_KEY;
-        const websiteURL = covPostURL[0];
-        const prompt = covGoal
-        const response = await smartScraper(apiKey, websiteURL, prompt);
-        var goal_alignment = response.result.goal_alignment
-        console.log(response.result)
         }
 
-        console.log(goal_alignment.result)
-
-        // setCovenantStatus
+        console.log("Goal is aligned: ", response.isAligned);
 
         const walletClient = createWalletClient({
             chain: arbitrum,
             transport: http(process.env.ETHEREUM_PROVIDER_ARBITRUM),
         });
 
-        // Local Account
         const account = privateKeyToAccount(
-            process.env.PRIVATE_KEY as `0x${string}`
+            process.env.EVM_PRIVATE_KEY as `0x${string}`
         );
 
-        if (goal_alignment === "Yes"){
-            var result = "1"
-        } else {
-            var result = "2"
-        }
+        const result = response.isAligned
+            ? CovenantStatus.COMPLETED
+            : CovenantStatus.FAILED;
+
+        console.log(`Setting covenant status to ${result} for nftId ${nftId}`);
 
         const { request } = await publicClient.simulateContract({
             account,
-            address: process.env.ARBISCAN_ADDRESS as `0x${string}`,
+            address: process.env
+                .ARBITRUM_ONE_COVENANT_NFT_ADDR as `0x${string}`,
             abi: moderatorKudoABI,
             functionName: "setCovenantStatus",
-            args: ["1", result], // NFTID, Status (1 (Completed) or 2 (Fail) ) - Arguments: Have to be dynamically put in
+            args: [nftId, result],
         });
         await walletClient.writeContract(request);
     },

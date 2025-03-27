@@ -21,9 +21,20 @@ After your analysis, provide the final output in a JSON markdown block. All fiel
 }
 \`\`\`
 
-`
+`;
 
-export const moderateGoalPostTemplate = `
+export const moderateMessageFooter = `
+After your analysis, provide the final output in a JSON markdown block. All fields are required. The JSON should have this structure:
+
+\`\`\`json
+{
+    "isAligned": boolean
+}
+\`\`\`
+`;
+
+export const moderateGoalPostTemplate =
+    `
 You are a judge with 20 years of experience in evaluating goal alignment. Below is a goal and a post:
 
 Goal: {{goal}}
@@ -39,14 +50,5 @@ Goal: Create a post promoting the ETH Token.
 Post: The ETH Token is great.
 Output: Yes
 
-After your analysis, provide the final output in a JSON markdown block. All fields are required. The JSON should have this structure:
 
-\`\`\`json
-{
-    "output": string,
-    "goal_alignment": string,
-    "post": string
-}
-\`\`\`
-
-`;
+` + messageCompletionFooter;
