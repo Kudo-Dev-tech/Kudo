@@ -8,7 +8,11 @@ import {
     generateObjectDeprecated,
     HandlerCallback,
 } from "@elizaos/core";
-import { extractTweetAndNFTID, extractIsValidSubject, extractTargetCovenantNFTID } from "../templates";
+import {
+    extractTweetAndNFTID,
+    extractIsValidSubject,
+    extractTargetCovenantNFTID,
+} from "../templates";
 import { kudoClient } from "@elizaos/plugin-kudo";
 import { SupportedChain } from "@elizaos/plugin-evm";
 
@@ -27,37 +31,35 @@ export const verifyAction: Action = {
         options: any,
         callback: HandlerCallback
     ) => {
-
         state = await runtime.composeState(message, {
-            message: message.content.text
-        })
+            message: message.content.text,
+        });
 
         const context = composeContext({
             state,
-            template: extractTargetCovenantNFTID
-        })
+            template: extractTargetCovenantNFTID,
+        });
 
-        const { targetCovenantID, chain } =
-            (await generateObjectDeprecated({
-                runtime,
-                context: context,
-                modelClass: ModelClass.LARGE,
-            })) as {
-                targetCovenantID: number
-                chain: SupportedChain
-            };
+        const { targetCovenantID, chain } = (await generateObjectDeprecated({
+            runtime,
+            context: context,
+            modelClass: ModelClass.LARGE,
+        })) as {
+            targetCovenantID: number;
+            chain: SupportedChain;
+        };
 
         const kudo = new kudoClient.KudoClient(runtime, chain);
-        const covenant = await kudo.getCovenant(targetCovenantID)
-        const subgoalIds = covenant.subgoalsId
+        const covenant = await kudo.getCovenant(targetCovenantID);
+        const subgoalIds = covenant.subgoalsId;
         for (const subgoal of subgoalIds) {
-            const settlementData = await kudo.getSettlementData(subgoal)
+            const settlementData = await kudo.getSettlementData(subgoal);
 
-            if (!settlementData) return
+            if (!settlementData) return;
 
             state = await runtime.composeState(message, {
-                message: settlementData
-            })
+                message: settlementData,
+            });
             const isValidContext = composeContext({
                 state,
                 template: extractIsValidSubject,
@@ -73,12 +75,15 @@ export const verifyAction: Action = {
                     isPromotingToken: boolean;
                 };
 
-            if (!hasMetMinimumLength || !isPromotingToken) return
+            if (!hasMetMinimumLength || !isPromotingToken) return;
 
-            await kudo.settle(subgoal)
+            await kudo.settle(subgoal);
         }
 
-        await kudo.setSettlementData(targetCovenantID, "Tophat is a great ecosystem")
+        await kudo.setSettlementData(
+            targetCovenantID,
+            "Tophat is a great ecosystem"
+        );
         await kudo.settle(targetCovenantID);
 
         return false;

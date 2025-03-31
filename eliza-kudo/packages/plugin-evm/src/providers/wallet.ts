@@ -360,10 +360,8 @@ export const initWalletProvider = async (runtime: IAgentRuntime) => {
 
         return walletProvider;
     } else {
-        const envVar = `${runtime.character.name.toUpperCase().replaceAll("-", "_")}_EVM_PRIVATE_KEY`
-        const privateKey = runtime.getSetting(
-            envVar
-        ) as `0x${string}`;
+        const envVar = `${runtime.character.name.toUpperCase().replaceAll("-", "_")}_EVM_PRIVATE_KEY`;
+        const privateKey = runtime.getSetting(envVar) as `0x${string}`;
         if (!privateKey) {
             throw new Error(`${envVar} is missing`);
         }

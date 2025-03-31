@@ -21,10 +21,6 @@ export const registerCovenantAction: Action = {
         return true;
     },
     handler: async (runtime: IAgentRuntime, message: Memory, state: State) => {
-        state = await runtime.composeState(message, {
-            message: message.content.text,
-        });
-
         const context = composeContext({
             state,
             template: extractGoalMessageTemplate,
@@ -37,7 +33,7 @@ export const registerCovenantAction: Action = {
             price,
             goal,
             minAbilityScore,
-            chain
+            chain,
         } = (await generateObjectDeprecated({
             runtime,
             context,
@@ -50,7 +46,7 @@ export const registerCovenantAction: Action = {
             price: string;
             type: "LOAN" | "SOCIAL_INTERACTION";
             minAbilityScore: number;
-            chain: SupportedChain
+            chain: SupportedChain;
         };
 
         const kudoClient = new KudoClient(runtime, chain);
