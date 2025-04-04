@@ -20,7 +20,7 @@ async function watchContractEvent(runtime: IAgentRuntime) {
                 (log) => log.eventName === "SettlementDataSet"
             );
 
-            if (!evt) throw new Error("Event not found");
+            if (!evt) return
 
             const nftId = evt.args.nftId;
 

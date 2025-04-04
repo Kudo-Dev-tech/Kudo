@@ -28,10 +28,27 @@ After your analysis, provide the final output in a JSON markdown block. All fiel
 
 \`\`\`json
 {
-    "isAligned": boolean
+    "isAligned": boolean,
+    "reasoning": string
 }
 \`\`\`
 `;
+
+export const moderateScrapperTemplate = ` Criteria for Success:
+{{promise}},
+
+Here are the Promise Details:
+{{promiseDetails}}
+
+Instructions:
+Extract and analyze the relevant data from the provided source.
+Compare the extracted information against the success criteria.
+Make sure that the promise details are also correct.
+Return isAligned: True only if the criteria (including the details in the Promise Details) are fully satisfied anf confirmed. Otherwise, return isAligned: False.
+Provide a clear and logical explanation for the decision, ensuring that contradictions do not occur.
+`
+//${data.covenantData.goal}
+ + moderateMessageFooter
 
 export const moderateGoalPostTemplate =
     `
