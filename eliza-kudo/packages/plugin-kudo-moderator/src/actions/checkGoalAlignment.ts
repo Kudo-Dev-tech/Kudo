@@ -5,7 +5,7 @@ import { createWalletClient } from "viem";
 import { arbitrum } from "viem/chains";
 import {
     moderateGoalPostTemplate,
-    moderateMessageFooter,
+    moderateScrapperTemplate
 } from "../templates/index.ts";
 import { privateKeyToAccount } from "viem/accounts";
 import {
@@ -65,6 +65,7 @@ export const moderateGoalPostAction: Action = {
             settlementData: string;
             covenantData: {
                 goal: string;
+                goalDetails: string
             };
         };
 
@@ -75,13 +76,21 @@ export const moderateGoalPostAction: Action = {
             isAligned: false,
         };
         if (covPostURL) {
+            const context = composeContext({
+                state: {
+                    ...state,
+                    promise: data.covenantData.goal,
+                    promiseDetails: "Write something positive about SOL" //data.covenantData.goalDetails
+                },
+               template: moderateScrapperTemplate
+            })
+
+            console.log("Context", context)
+
             const smartScraperResponse = await smartScraper(
                 process.env.SCRAPE_JS_API_KEY,
                 covPostURL[0],
-                `Go to the link and check if the goal has been achieved or not.
-
-                Goal: ${data.covenantData.goal}
-                ` + moderateMessageFooter
+                context
             );
 
             response = smartScraperResponse.result;
@@ -99,10 +108,10 @@ export const moderateGoalPostAction: Action = {
                 runtime,
                 context,
                 modelClass: ModelClass.LARGE,
-            });
+            })
         }
 
-        console.log("Goal is aligned: ", response.isAligned);
+        console.log("Goal is aligned: ", response.isAligned, "reasoning:", response.reasoning);
 
         const walletClient = createWalletClient({
             chain: arbitrum,
